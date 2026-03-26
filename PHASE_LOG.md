@@ -37,6 +37,12 @@
 - Upgraded algebra parsing for implicit multiplication patterns like `(1-a)(1-b)` with conditional simplification.
 - Added executable symbolic regression tests for probability, trigonometry, and algebra failure prompts.
 
+## Phase 8 - Production failure UX cleanup and broader symbolic parsing
+- Removed user-facing debug clutter like extracted parameters and quality scores from failure answers.
+- Routed variable/operator-only expressions like `a2+b2-2ab` into algebra instead of generic symbolic fallback.
+- Hardened the generic symbolic fallback parser with implicit multiplication and exponent normalization.
+- Reduced on-screen error hints to short rewrite guidance instead of internal engine metadata.
+
 ## Move Map
 - `lib/math/sympy-utils.ts` extraction branches -> `lib/math/deterministic-extractors.ts`.
 - Domain parser hardening retained in `lib/math/code-templates.ts`, with targeted regression locks in `tests/extractors/symbolic-regression.test.ts`.

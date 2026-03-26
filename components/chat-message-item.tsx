@@ -66,11 +66,7 @@ export function ChatMessageItem({
             />
             {message.symbolic.error && (message.symbolic.retryHint || message.symbolic.errorCode) && (
               <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                {message.symbolic.errorCode ? `Error Code: ${message.symbolic.errorCode}` : ""}
-                {message.symbolic.errorCode && message.symbolic.retryHint ? " • " : ""}
-                {message.symbolic.retryHint || ""}
-                {typeof message.symbolic.qualityScore === "number" ? ` • Quality: ${message.symbolic.qualityScore}/100` : ""}
-                {message.symbolic.ambiguitySignals && message.symbolic.ambiguitySignals.length > 0 ? ` • Ambiguity: ${message.symbolic.ambiguitySignals.join(", ")}` : ""}
+                {message.symbolic.retryHint || "Try rewriting the problem in a shorter, clearer math form."}
               </div>
             )}
           </div>

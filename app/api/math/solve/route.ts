@@ -32,45 +32,34 @@ function buildDeterministicFailureMessage(
   problemType: string,
   retryHint?: string,
   missingValues: string[] = [],
-  blockingReason?: string,
-  extractedParameters: Record<string, number | number[]> = {},
-  qualityScore?: number
+  blockingReason?: string
 ) {
-  const missingText =
+  const guidance =
     missingValues.length > 0
-      ? `\\text{Missing values: ${missingValues.join(", ")}}`
-      : `\\text{${(blockingReason || "No required values were explicitly missing, but parsing still failed.").replace(/"/g, '\\"')}}`;
+      ? `Please include these values explicitly: ${missingValues.join(", ")}.`
+      : blockingReason || "The solver could not turn this prompt into a reliable math expression.";
   return `# Question
 ${problem}
 
 # Answer
-I could not compute a deterministic symbolic result yet.
+I could not solve this question automatically yet.
 
 # Solution
 ### Step 1
-Classify the problem as ${problemType}.
+Identify the question as ${problemType}.
 $$
-\\text{Deterministic parser did not extract all required values.}
+\\text{${guidance.replace(/"/g, '\\"')}}
 $$
 
 ### Step 2
-Rewrite the prompt with explicit values and operation keywords.
+Try a cleaner math statement.
 $$
-${missingText}
-$$
-$$
-\\text{Extracted parameters: ${(JSON.stringify(extractedParameters) || "{}").replace(/"/g, '\\"')}}
-$$
-$$
-\\text{Quality score: ${qualityScore ?? 0}/100}
-$$
-$$
-\\text{${(retryHint || 'Example: "Find cylinder volume with radius = 7 and height = 10"').replace(/"/g, '\\"')}}
+\\text{${(retryHint || "Rewrite the problem as a direct math expression or a short word problem with explicit values.").replace(/"/g, '\\"')}}
 $$
 
 # Explanation
-- The engine blocked unreliable inference to avoid wrong answers.
-- The next deterministic pass will solve once required values are explicit.`;
+- The current parser failed on this wording.
+- The next pass should succeed with a cleaner statement or explicit values.`;
 }
 
 export async function POST(req: Request) {
@@ -82,7 +71,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Problem is required" }, { status: 400 });
     }
 
-    const cacheKey = buildProblemHash(`v7::${problem}::${normalizedContext}`);
+    const cacheKey = buildProblemHash(`v8::${problem}::${normalizedContext}`);
     const cached = getCachedSolution(cacheKey);
     if (cached) {
       const cachedRecord = cached as Record<string, any>;
@@ -138,9 +127,7 @@ export async function POST(req: Request) {
           plan.problemType,
           plan.blockingRetryHint,
           plan.missingValues,
-          plan.blockingReason,
-          plan.extractedParameters,
-          plan.qualityScore
+          plan.blockingReason
         ),
       };
       cacheSolution(cacheKey, payload);
@@ -185,9 +172,7 @@ export async function POST(req: Request) {
           plan.problemType,
           execution.retryHint,
           plan.missingValues,
-          execution.error,
-          plan.extractedParameters,
-          plan.qualityScore
+          execution.error
         ),
       };
       cacheSolution(cacheKey, payload);

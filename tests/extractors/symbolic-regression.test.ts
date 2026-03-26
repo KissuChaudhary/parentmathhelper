@@ -36,3 +36,20 @@ test("algebra identity expression with condition simplifies correctly", () => {
   assert.ok(code.includes("condition_match = re.search"));
   assert.ok(code.includes("ALGEBRA_PARSE_ERROR"));
 });
+
+test("symbolic expression with variables routes to algebra instead of general symbolic", () => {
+  const problem = "a2+b2-2ab";
+  const problemType = inferProblemType(problem);
+  const code = buildSympyCode(problem, problemType);
+  assert.equal(problemType, "algebra");
+  assert.ok(code.includes("implicit_multiplication_application"));
+});
+
+test("assignment-style algebra prompt stays in algebra flow", () => {
+  const problem = "If a = 1 - 1/b and b = 1 - 1/c, then the value of c - 1/a is";
+  const profile = inferDeterministicProfile(problem);
+  const code = buildSympyCode(problem, inferProblemType(problem));
+  assert.equal(profile.problemType, "algebra");
+  assert.ok(code.includes("assignments = re.findall"));
+  assert.ok(code.includes("condition_match = re.search"));
+});

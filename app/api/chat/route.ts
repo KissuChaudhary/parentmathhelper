@@ -149,7 +149,7 @@ Do not include any other text outside this structure for math problems.`;
     const canRunSymbolic = Boolean(lastUserText) && !lastUserMessage?.image && isLikelyMathQuestion(lastUserText);
 
     if (canRunSymbolic) {
-      const cacheKey = buildProblemHash(`v7::${mode}::${lastUserText}`);
+      const cacheKey = buildProblemHash(`v8::${mode}::${lastUserText}`);
       const cached = getCachedSolution(cacheKey) as { text?: string } | undefined;
       if (cached?.text) {
         return new Response(cached.text, {
@@ -166,29 +166,24 @@ Do not include any other text outside this structure for math problems.`;
 ${lastUserText}
 
 # Answer
-I need a few explicit values before I can solve this deterministically.
+I could not solve this question automatically yet.
 
 # Solution
 ### Step 1
-The engine classified this as ${plan.problemType}.
+Identify the question as ${plan.problemType}.
 $$
 \\text{${(plan.blockingReason || "Deterministic execution blocked due to missing values.").replace(/"/g, '\\"')}}
 $$
 
 ### Step 2
-Retry with explicit values.
+Try a cleaner math statement.
 $$
-\\text{${(plan.blockingRetryHint || 'Example: "Find cylinder volume with radius = 7 and height = 10"').replace(/"/g, '\\"')}}
+\\text{${(plan.blockingRetryHint || "Rewrite the problem with direct expressions and explicit values.").replace(/"/g, '\\"')}}
 $$
 
 # Explanation
-- Deterministic execution is intentionally blocked to prevent wrong answers.
-- Deterministic path: ${plan.deterministicPath}
-- Classifier confidence: ${plan.classifierConfidence}
-- Quality score: ${plan.qualityScore}/100
-- Extracted parameters: ${JSON.stringify(plan.extractedParameters)}
-- Parameter confidence: ${JSON.stringify(plan.parameterConfidence)}
-- Ambiguity signals: ${plan.ambiguitySignals.join(", ") || "none"}`;
+- The current parser failed on this wording.
+- A cleaner statement usually solves the problem on the next pass.`;
         cacheSolution(cacheKey, { text: blockedText });
         return new Response(blockedText, {
           headers: {
@@ -205,38 +200,28 @@ $$
       });
 
       if (execution.error) {
-        const retryHint = execution.retryHint || 'Example: "Volume of cylinder with radius = 7 and height = 10"';
-        const missingValuesText =
-          plan.missingValues.length > 0 ? `Missing values: ${plan.missingValues.join(", ")}` : "No explicit required values were detected as missing.";
+        const retryHint = execution.retryHint || "Rewrite the problem with direct expressions and explicit values.";
+        const missingValuesText = plan.missingValues.length > 0 ? `Please include: ${plan.missingValues.join(", ")}.` : "Rewrite the question in a shorter, cleaner math form.";
         const deterministicErrorText = `# Question
 ${lastUserText}
 
 # Answer
-I could not compute a deterministic symbolic result yet.
+I could not solve this question automatically yet.
 
 # Solution
 ### Step 1
-The engine classified this as ${plan.problemType}.
-$$
-\\text{Deterministic parser failed to extract complete values.}
-$$
-
-### Step 2
-Retry with explicit numeric inputs and required variable names.
+Identify the question as ${plan.problemType}.
 $$
 \\text{${missingValuesText.replace(/"/g, '\\"')}}
 $$
-$$
+
+### Step 2
 \\text{${retryHint.replace(/"/g, '\\"')}}
 $$
 
 # Explanation
-- The engine intentionally blocks unreliable guesses.
-- This prevents incorrect answers from being shown.
-- Error code: ${execution.errorCode || "DETERMINISTIC_PARSE_BLOCKED"}
-- Deterministic path: ${plan.deterministicPath}
-- Classifier confidence: ${plan.classifierConfidence}
-- Quality score: ${plan.qualityScore}/100`;
+- The current parser failed on this wording.
+- A cleaner statement usually solves the problem on the next pass.`;
         cacheSolution(cacheKey, { text: deterministicErrorText });
         return new Response(deterministicErrorText, {
           headers: {
