@@ -43,6 +43,7 @@ test("symbolic expression with variables routes to algebra instead of general sy
   const code = buildSympyCode(problem, problemType);
   assert.equal(problemType, "algebra");
   assert.ok(code.includes("implicit_multiplication_application"));
+  assert.ok(code.includes('([a-zA-Z])\\s*(\\d+)'));
 });
 
 test("assignment-style algebra prompt stays in algebra flow", () => {
@@ -52,4 +53,12 @@ test("assignment-style algebra prompt stays in algebra flow", () => {
   assert.equal(profile.problemType, "algebra");
   assert.ok(code.includes("assignments = re.findall"));
   assert.ok(code.includes("condition_match = re.search"));
+});
+
+test("power-style olympiad expression uses exponent normalization and ambiguity guard", () => {
+  const problem = "If a + 1/a = 3, then what is the value of a18 + a12 + a6 + 1?";
+  const problemType = inferProblemType(problem);
+  const code = buildSympyCode(problem, problemType);
+  assert.equal(problemType, "algebra");
+  assert.ok(code.includes("expression gives multiple possible values under the condition"));
 });

@@ -12,6 +12,18 @@ function isLikelyMathQuestion(text: string) {
   return false;
 }
 
+function sanitizeChatFailureReason(problemType: string, rawReason?: string, missingValues: string[] = []) {
+  if (missingValues.length > 0) return `Please include these values explicitly: ${missingValues.join(", ")}.`;
+  if (!rawReason) return "The solver could not turn this prompt into a reliable math expression.";
+  if (/PARSE_ERROR|could not parse|SyntaxError|SympifyError/i.test(rawReason)) {
+    if (problemType === "algebra") return "The algebra expression format was not recognized reliably.";
+    if (problemType === "trigonometry") return "The trigonometry expression format was not recognized reliably.";
+    if (problemType === "probability") return "The probability wording was not recognized reliably.";
+    return "The solver could not turn this prompt into a reliable math expression.";
+  }
+  return rawReason;
+}
+
 export async function POST(req: Request) {
   try {
     const { messages, mode } = await req.json();
@@ -149,7 +161,7 @@ Do not include any other text outside this structure for math problems.`;
     const canRunSymbolic = Boolean(lastUserText) && !lastUserMessage?.image && isLikelyMathQuestion(lastUserText);
 
     if (canRunSymbolic) {
-      const cacheKey = buildProblemHash(`v8::${mode}::${lastUserText}`);
+      const cacheKey = buildProblemHash(`v9::${mode}::${lastUserText}`);
       const cached = getCachedSolution(cacheKey) as { text?: string } | undefined;
       if (cached?.text) {
         return new Response(cached.text, {
@@ -172,7 +184,7 @@ I could not solve this question automatically yet.
 ### Step 1
 Identify the question as ${plan.problemType}.
 $$
-\\text{${(plan.blockingReason || "Deterministic execution blocked due to missing values.").replace(/"/g, '\\"')}}
+\\text{${sanitizeChatFailureReason(plan.problemType, plan.blockingReason, plan.missingValues).replace(/"/g, '\\"')}}
 $$
 
 ### Step 2
@@ -201,7 +213,7 @@ $$
 
       if (execution.error) {
         const retryHint = execution.retryHint || "Rewrite the problem with direct expressions and explicit values.";
-        const missingValuesText = plan.missingValues.length > 0 ? `Please include: ${plan.missingValues.join(", ")}.` : "Rewrite the question in a shorter, cleaner math form.";
+        const missingValuesText = sanitizeChatFailureReason(plan.problemType, execution.error, plan.missingValues);
         const deterministicErrorText = `# Question
 ${lastUserText}
 

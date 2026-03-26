@@ -113,11 +113,16 @@ export function inferProblemType(problem: string): SupportedMathProblemType {
   ) {
     return "geometry";
   }
-  if (/^\s*[-+/*().\d\s^]+\s*$/.test(text) || /(what is|calculate|compute|evaluate).*\d/.test(text)) {
-    return "arithmetic";
-  }
-  if (/[a-z]/i.test(text) && /[+\-*/^()]/.test(text)) {
+  if (/\b[a-z]\b|[a-z]\d+|\d+[a-z]/i.test(text) && /[+\-*/^()=]/.test(text)) {
     return "algebra";
+  }
+  if (
+    /^\s*[-+/*().\d\s^]+\s*$/.test(text) ||
+    (/(what is|calculate|compute|evaluate)/.test(text) &&
+      /\d/.test(text) &&
+      !(/\b[a-z]\b|[a-z]\d+|\d+[a-z]/i.test(text)))
+  ) {
+    return "arithmetic";
   }
   if (text.includes("=") || text.includes("solve") || text.includes("factor")) {
     return "algebra";

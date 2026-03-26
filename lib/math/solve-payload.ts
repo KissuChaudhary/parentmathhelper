@@ -1,7 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { NextResponse } from "next/server";
 import { buildProblemHash, cacheSolution, getCachedSolution } from "@/lib/cache/math-cache";
-import { solveMathProblemPayload as solveMathProblemPayloadCore } from "@/lib/math/solve-payload";
 import { mathInterpreterTool, mathSymbolicSolverTool } from "@/lib/tools/index";
 
 type SolveRouteDependencies = {
@@ -81,24 +79,7 @@ $$
 - The next pass should succeed with a cleaner statement or explicit values.`;
 }
 
-export async function POST(req: Request) {
-  try {
-    const { problem, userQuery } = await req.json();
-    const payload = await solveMathProblemPayloadCore({ problem, userQuery });
-    if ("error" in payload && typeof payload.error === "string") {
-      return NextResponse.json(payload, { status: 400 });
-    }
-    return NextResponse.json(payload);
-  } catch (error: any) {
-    console.error("Math solve route error:", error);
-    return NextResponse.json(
-      { error: error?.message || "Failed to solve math problem" },
-      { status: 500 }
-    );
-  }
-}
-
-async function solveMathProblemPayloadInternal(
+export async function solveMathProblemPayload(
   {
     problem,
     userQuery,
@@ -254,8 +235,8 @@ async function solveMathProblemPayloadInternal(
     return payload;
   }
 
-    const ai = new GoogleGenAI({ apiKey });
-    const prompt = `You are a math explainer for parents and students.
+  const ai = new GoogleGenAI({ apiKey });
+  const prompt = `You are a math explainer for parents and students.
 Use the exact symbolic execution results below.
 Never invent a different numeric or symbolic answer.
 Write cleanly for non-technical readers.
@@ -303,38 +284,38 @@ $$
 # Explanation
 [Clear teaching explanation and any caveats in short bullet points]`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-    });
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt,
+  });
 
-    const payload = {
-      success: execution.success,
-      problem,
-      symbolic: {
-        problemType: plan.problemType,
-        deterministicPath: plan.deterministicPath,
-        classifierConfidence: plan.classifierConfidence,
-        requiredValues: plan.requiredValues,
-        missingValues: plan.missingValues,
-        extractedParameters: plan.extractedParameters,
-        parameterConfidence: plan.parameterConfidence,
-        ambiguitySignals: plan.ambiguitySignals,
-        qualityScore: plan.qualityScore,
-        qualityBreakdown: plan.qualityBreakdown,
-        canExecuteDeterministic: plan.canExecuteDeterministic,
-        blockingReason: plan.blockingReason,
-        blockingRetryHint: plan.blockingRetryHint,
-        code: plan.generatedCode,
-        output: execution.output,
-        error: execution.error,
-        errorCode: execution.errorCode,
-        retryHint: execution.retryHint,
-        runtime: execution.runtime,
-        status: getExecutionStatus(execution.success, execution.error),
-      },
-      solution: response.text ? formatReadableMathResponse(response.text) : execution.output,
-    };
-    cacheSolution(cacheKey, payload);
-    return payload;
+  const payload = {
+    success: execution.success,
+    problem,
+    symbolic: {
+      problemType: plan.problemType,
+      deterministicPath: plan.deterministicPath,
+      classifierConfidence: plan.classifierConfidence,
+      requiredValues: plan.requiredValues,
+      missingValues: plan.missingValues,
+      extractedParameters: plan.extractedParameters,
+      parameterConfidence: plan.parameterConfidence,
+      ambiguitySignals: plan.ambiguitySignals,
+      qualityScore: plan.qualityScore,
+      qualityBreakdown: plan.qualityBreakdown,
+      canExecuteDeterministic: plan.canExecuteDeterministic,
+      blockingReason: plan.blockingReason,
+      blockingRetryHint: plan.blockingRetryHint,
+      code: plan.generatedCode,
+      output: execution.output,
+      error: execution.error,
+      errorCode: execution.errorCode,
+      retryHint: execution.retryHint,
+      runtime: execution.runtime,
+      status: getExecutionStatus(execution.success, execution.error),
+    },
+    solution: response.text ? formatReadableMathResponse(response.text) : execution.output,
+  };
+  cacheSolution(cacheKey, payload);
+  return payload;
 }

@@ -480,8 +480,8 @@ assignments = re.findall(r"([a-zA-Z])\\s*=\\s*([^,;]+?)(?=(?:\\s+and\\s+[a-zA-Z]
 
 def normalize_expr(expr):
     cleaned = expr.replace("^", "**").replace("−", "-").replace("√", "sqrt")
-    cleaned = re.sub(r"\\b([a-zA-Z])\\s*2\\b", r"\\1**2", cleaned)
-    cleaned = re.sub(r"\\b([a-zA-Z])\\s*3\\b", r"\\1**3", cleaned)
+    cleaned = re.sub(r"\\b([a-zA-Z])\\s*(\\d+)\\b", r"\\1**\\2", cleaned)
+    cleaned = re.sub(r"(\\))\\s*(\\d+)\\b", r"\\1**\\2", cleaned)
     cleaned = re.sub(r"sqrt\\s*\\*\\*\\s*(\\d+)", r"sqrt(\\1)", cleaned)
     cleaned = re.sub(r"sqrt\\s*(\\d+)", r"sqrt(\\1)", cleaned)
     cleaned = re.sub(r"(\\d+)\\s*sqrt\\s*\\(", r"\\1*sqrt(", cleaned)
@@ -519,14 +519,23 @@ try:
         equation = Eq(safe_parse(left, {**locals(), **local_values}), safe_parse(right, {**locals(), **local_values}))
         expr = safe_parse(target, {**locals(), **local_values})
         free_vars = sorted(list(equation.free_symbols), key=lambda s: str(s))
-        solved = None
         if free_vars:
             pivot = free_vars[-1]
             solved_list = solve(equation, pivot)
             if solved_list:
-                solved = solved_list[0]
-                expr = expr.subs(pivot, solved)
-        print(simplify(expr))
+                evaluated = [simplify(expr.subs(pivot, item)) for item in solved_list]
+                unique_values = []
+                for item in evaluated:
+                    if item not in unique_values:
+                        unique_values.append(item)
+                if len(unique_values) == 1:
+                    print(unique_values[0])
+                else:
+                    print("ALGEBRA_PARSE_ERROR: expression gives multiple possible values under the condition")
+            else:
+                print(simplify(expr))
+        else:
+            print(simplify(expr))
     elif local_values and target:
         expr = safe_parse(target, {**locals(), **local_values})
         print(simplify(expr))
@@ -550,8 +559,8 @@ transformations = standard_transformations + (implicit_multiplication_applicatio
 
 def normalize_expr(expr):
     cleaned = expr.strip(" .:?")
-    cleaned = re.sub(r"\\b([a-zA-Z])\\s*2\\b", r"\\1**2", cleaned)
-    cleaned = re.sub(r"\\b([a-zA-Z])\\s*3\\b", r"\\1**3", cleaned)
+    cleaned = re.sub(r"\\b([a-zA-Z])\\s*(\\d+)\\b", r"\\1**\\2", cleaned)
+    cleaned = re.sub(r"(\\))\\s*(\\d+)\\b", r"\\1**\\2", cleaned)
     cleaned = re.sub(r"(\\d+)\\s*([a-zA-Z])", r"\\1*\\2", cleaned)
     cleaned = re.sub(r"([a-zA-Z])([a-zA-Z])", r"\\1*\\2", cleaned)
     cleaned = re.sub(r"\\)\\s*\\(", r")*(", cleaned)

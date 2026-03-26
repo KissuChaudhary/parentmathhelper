@@ -43,6 +43,17 @@
 - Hardened the generic symbolic fallback parser with implicit multiplication and exponent normalization.
 - Reduced on-screen error hints to short rewrite guidance instead of internal engine metadata.
 
+## Phase 9 - Algebra stability for power notation and repeated-question consistency
+- Added multi-digit exponent normalization like `a18 -> a**18` in algebra and generic symbolic parsing.
+- Added ambiguity guard for condition-based algebra when different valid roots produce different outputs.
+- Sanitized raw parser stack text from user-facing fallback explanations.
+- Bumped cache version again to flush stale inconsistent answers.
+
+## Phase 10 - Route-level regression coverage for final solver payloads
+- Added direct `/api/math/solve` regression tests using real failing prompts.
+- Locked stable final payload answers for probability, trigonometry, and olympiad-style algebra prompts.
+- Added cache consistency assertions so repeated prompts return the same final answer text.
+
 ## Move Map
 - `lib/math/sympy-utils.ts` extraction branches -> `lib/math/deterministic-extractors.ts`.
 - Domain parser hardening retained in `lib/math/code-templates.ts`, with targeted regression locks in `tests/extractors/symbolic-regression.test.ts`.
