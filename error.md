@@ -1,0 +1,55 @@
+→ ValueError: Error from parse_expr with transformed code: 'sqrt **Integer (3 )+Integer (1 )/sqrt **Integer (3 )-Integer (1 )'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    exec(__import__("base64").b64decode("ZnJvbSBzeW1weSBpbXBvcnQgKgppbXBvcnQgc3lzCnN5cy5zdGRvdXQucmVjb25maWd1cmUoZW5jb2Rpbmc9J3V0Zi04JykKaW1wb3J0IHJlCmZyb20gc3ltcHkgaW1wb3J0IHN5bWJvbHMsIEVxLCBzb2x2ZSwgc3ltcGlmeSwgc2ltcGxpZnksIGZhY3Rvciwgc3FydAp4LCBhLCBiLCBjLCB5LCB6ID0gc3ltYm9scygneCBhIGIgYyB5IHonKQpyYXcgPSAiUXVlc3Rpb24gNDogSWYgYSA9IOKImjMgKyAxIC8g4oiaMyAtMSBhbmQgYiA9IOKImjMgLTEgLyDiiJozICsgMSwgdGhlbiBmaW5kIHRoZSB2YWx1ZSBvZiAoYTIgKyBhYiArIGIyKS8oYTIg4oCTIGFiICsgYjIpIGlzXG4iCnRleHQgPSByYXcucmVwbGFjZSgiXiIsICIqKiIpLnJlcGxhY2UoIuKIkiIsICItIikucmVwbGFjZSgi4oiaIiwgInNxcnQiKQp0ZXh0ID0gcmUuc3ViKHIiKD9pKV5ccypxdWVzdGlvblxzKlxkK1xzKls6LiktXSpccyoiLCAiIiwgdGV4dCkuc3RyaXAoKQp0ZXh0ID0gcmUuc3ViKHIiKFthLXpBLVpdKTJcYiIsIHIiXDEqKjIiLCB0ZXh0KQp0ZXh0ID0gcmUuc3ViKHIiKFthLXpBLVpdKTNcYiIsIHIiXDEqKjMiLCB0ZXh0KQphc3NpZ25tZW50cyA9IHJlLmZpbmRhbGwociIoW2EtekEtWl0pXHMqPVxzKihbXiw7XSs/KSg/PSg/OlxzK2FuZFxzK1thLXpBLVpdXHMqPXwsfDt8XGJmaW5kXGJ8XGJldmFsdWF0ZVxifFxiY29tcHV0ZVxifFw/fCQpKSIsIHRleHQsIGZsYWdzPXJlLklHTk9SRUNBU0UpCgpkZWYgc2FmZV9zeW1waWZ5KHZhbF9zdHIsIGxvY2FsX2RpY3QpOgogICAgdHJ5OgogICAgICAgICMgUHJldmVudCBzcXJ0IGZyb20gYmVpbmcgZXZhbHVhdGVkIGFzIGEgZnVuY3Rpb24gd2l0aG91dCBwYXJlbnRoZXNlcwogICAgICAgIHZhbF9zdHIgPSByZS5zdWIociJzcXJ0XHMqKFtcZF0rKSIsIHIic3FydChcMSkiLCB2YWxfc3RyKQogICAgICAgIHJldHVybiBzeW1waWZ5KHZhbF9zdHIsIGxvY2Fscz1sb2NhbF9kaWN0KQogICAgZXhjZXB0IEV4Y2VwdGlvbjoKICAgICAgICByZXR1cm4gc3ltcGlmeSh2YWxfc3RyKQoKbG9jYWxfdmFsdWVzID0ge30KZm9yIHZhciwgdmFsdWUgaW4gYXNzaWdubWVudHM6CiAgICBsb2NhbF92YWx1ZXNbdmFyLmxvd2VyKCldID0gc2FmZV9zeW1waWZ5KHZhbHVlLnN0cmlwKCksIHsqKmxvY2FscygpLCAqKmxvY2FsX3ZhbHVlc30pCgpleHByX21hdGNoID0gcmUuc2VhcmNoKHIiKD86dmFsdWUgb2Z8ZXZhbHVhdGV8Y29tcHV0ZXxmaW5kKVxzKyguKz8pKD86XD98XGJpc1xifCQpIiwgdGV4dCwgZmxhZ3M9cmUuSUdOT1JFQ0FTRSkKdGFyZ2V0ID0gKGV4cHJfbWF0Y2guZ3JvdXAoMSkuc3RyaXAoKSBpZiBleHByX21hdGNoIGVsc2UgdGV4dCkuc3RyaXAoIiA6IikKCmlmIGxvY2FsX3ZhbHVlcyBhbmQgdGFyZ2V0OgogICAgZXhwciA9IHNhZmVfc3ltcGlmeSh0YXJnZXQsIHsqKmxvY2FscygpLCAqKmxvY2FsX3ZhbHVlc30pCiAgICBwcmludChzaW1wbGlmeShleHByKSkKZWxpZiAiPSIgaW4gdGFyZ2V0OgogICAgbGVmdCwgcmlnaHQgPSB0YXJnZXQuc3BsaXQoIj0iLCAxKQogICAgZXF1YXRpb24gPSBFcShzYWZlX3N5bXBpZnkobGVmdCwgbG9jYWxzKCkpLCBzYWZlX3N5bXBpZnkocmlnaHQsIGxvY2FscygpKSkKICAgIHByaW50KHNvbHZlKGVxdWF0aW9uLCB4KSkKZWxzZToKICAgIGV4cHIgPSBzYWZlX3N5bXBpZnkodGFyZ2V0LCBsb2NhbHMoKSkKICAgIHByaW50KGZhY3RvcihleHByKSk=").decode())
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 24, in <module>
+  File "<string>", line 20, in safe_sympify
+  File "/usr/local/lib/python3.14/site-packages/sympy/core/sympify.py", line 507, in sympify
+    expr = parse_expr(a, local_dict=locals, transformations=transformations, evaluate=evaluate)
+  File "/usr/local/lib/python3.14/site-packages/sympy/parsing/sympy_parser.py", line 1090, in parse_expr
+    raise e from ValueError(f"Error from parse_expr with transformed code: {code!r}")
+  File "/usr/local/lib/python3.14/site-packages/sympy/parsing/sympy_parser.py", line 1081, in parse_expr
+    rv = eval_expr(code, local_dict, global_dict)
+  File "/usr/local/lib/python3.14/site-packages/sympy/parsing/sympy_parser.py", line 905, in eval_expr
+    expr = eval(
+        code, global_dict, local_dict)  # take local objects in preference
+  File "<string>", line 1, in <module>
+    exec(__import__("base64").b64decode("ZnJvbSBzeW1weSBpbXBvcnQgKgppbXBvcnQgc3lzCnN5cy5zdGRvdXQucmVjb25maWd1cmUoZW5jb2Rpbmc9J3V0Zi04JykKaW1wb3J0IHJlCmZyb20gc3ltcHkgaW1wb3J0IHN5bWJvbHMsIEVxLCBzb2x2ZSwgc3ltcGlmeSwgc2ltcGxpZnksIGZhY3Rvciwgc3FydAp4LCBhLCBiLCBjLCB5LCB6ID0gc3ltYm9scygneCBhIGIgYyB5IHonKQpyYXcgPSAiUXVlc3Rpb24gNDogSWYgYSA9IOKImjMgKyAxIC8g4oiaMyAtMSBhbmQgYiA9IOKImjMgLTEgLyDiiJozICsgMSwgdGhlbiBmaW5kIHRoZSB2YWx1ZSBvZiAoYTIgKyBhYiArIGIyKS8oYTIg4oCTIGFiICsgYjIpIGlzXG4iCnRleHQgPSByYXcucmVwbGFjZSgiXiIsICIqKiIpLnJlcGxhY2UoIuKIkiIsICItIikucmVwbGFjZSgi4oiaIiwgInNxcnQiKQp0ZXh0ID0gcmUuc3ViKHIiKD9pKV5ccypxdWVzdGlvblxzKlxkK1xzKls6LiktXSpccyoiLCAiIiwgdGV4dCkuc3RyaXAoKQp0ZXh0ID0gcmUuc3ViKHIiKFthLXpBLVpdKTJcYiIsIHIiXDEqKjIiLCB0ZXh0KQp0ZXh0ID0gcmUuc3ViKHIiKFthLXpBLVpdKTNcYiIsIHIiXDEqKjMiLCB0ZXh0KQphc3NpZ25tZW50cyA9IHJlLmZpbmRhbGwociIoW2EtekEtWl0pXHMqPVxzKihbXiw7XSs/KSg/PSg/OlxzK2FuZFxzK1thLXpBLVpdXHMqPXwsfDt8XGJmaW5kXGJ8XGJldmFsdWF0ZVxifFxiY29tcHV0ZVxifFw/fCQpKSIsIHRleHQsIGZsYWdzPXJlLklHTk9SRUNBU0UpCgpkZWYgc2FmZV9zeW1waWZ5KHZhbF9zdHIsIGxvY2FsX2RpY3QpOgogICAgdHJ5OgogICAgICAgICMgUHJldmVudCBzcXJ0IGZyb20gYmVpbmcgZXZhbHVhdGVkIGFzIGEgZnVuY3Rpb24gd2l0aG91dCBwYXJlbnRoZXNlcwogICAgICAgIHZhbF9zdHIgPSByZS5zdWIociJzcXJ0XHMqKFtcZF0rKSIsIHIic3FydChcMSkiLCB2YWxfc3RyKQogICAgICAgIHJldHVybiBzeW1waWZ5KHZhbF9zdHIsIGxvY2Fscz1sb2NhbF9kaWN0KQogICAgZXhjZXB0IEV4Y2VwdGlvbjoKICAgICAgICByZXR1cm4gc3ltcGlmeSh2YWxfc3RyKQoKbG9jYWxfdmFsdWVzID0ge30KZm9yIHZhciwgdmFsdWUgaW4gYXNzaWdubWVudHM6CiAgICBsb2NhbF92YWx1ZXNbdmFyLmxvd2VyKCldID0gc2FmZV9zeW1waWZ5KHZhbHVlLnN0cmlwKCksIHsqKmxvY2FscygpLCAqKmxvY2FsX3ZhbHVlc30pCgpleHByX21hdGNoID0gcmUuc2VhcmNoKHIiKD86dmFsdWUgb2Z8ZXZhbHVhdGV8Y29tcHV0ZXxmaW5kKVxzKyguKz8pKD86XD98XGJpc1xifCQpIiwgdGV4dCwgZmxhZ3M9cmUuSUdOT1JFQ0FTRSkKdGFyZ2V0ID0gKGV4cHJfbWF0Y2guZ3JvdXAoMSkuc3RyaXAoKSBpZiBleHByX21hdGNoIGVsc2UgdGV4dCkuc3RyaXAoIiA6IikKCmlmIGxvY2FsX3ZhbHVlcyBhbmQgdGFyZ2V0OgogICAgZXhwciA9IHNhZmVfc3ltcGlmeSh0YXJnZXQsIHsqKmxvY2FscygpLCAqKmxvY2FsX3ZhbHVlc30pCiAgICBwcmludChzaW1wbGlmeShleHByKSkKZWxpZiAiPSIgaW4gdGFyZ2V0OgogICAgbGVmdCwgcmlnaHQgPSB0YXJnZXQuc3BsaXQoIj0iLCAxKQogICAgZXF1YXRpb24gPSBFcShzYWZlX3N5bXBpZnkobGVmdCwgbG9jYWxzKCkpLCBzYWZlX3N5bXBpZnkocmlnaHQsIGxvY2FscygpKSkKICAgIHByaW50KHNvbHZlKGVxdWF0aW9uLCB4KSkKZWxzZToKICAgIGV4cHIgPSBzYWZlX3N5bXBpZnkodGFyZ2V0LCBsb2NhbHMoKSkKICAgIHByaW50KGZhY3RvcihleHByKSk=").decode())
+    ^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported operand type(s) for ** or pow(): 'function' and 'Integer'
+
+
+ValueError: Error from parse_expr with transformed code: "Symbol ('Evaluate' )Symbol ('the' )Symbol ('definite' )Symbol ('integral' ):Function ('∫' )(Integer (1 )Symbol ('to' )Symbol ('e' ))(ln (Symbol ('x' )))Integer (2 )Symbol ('dx' )"
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.14/site-packages/sympy/core/sympify.py", line 507, in sympify
+    expr = parse_expr(a, local_dict=locals, transformations=transformations, evaluate=evaluate)
+  File "/usr/local/lib/python3.14/site-packages/sympy/parsing/sympy_parser.py", line 1090, in parse_expr
+    raise e from ValueError(f"Error from parse_expr with transformed code: {code!r}")
+  File "/usr/local/lib/python3.14/site-packages/sympy/parsing/sympy_parser.py", line 1081, in parse_expr
+    rv = eval_expr(code, local_dict, global_dict)
+  File "/usr/local/lib/python3.14/site-packages/sympy/parsing/sympy_parser.py", line 905, in eval_expr
+    expr = eval(
+        code, global_dict, local_dict)  # take local objects in preference
+  File "<string>", line 1
+    Symbol ('Evaluate' )Symbol ('the' )Symbol ('definite' )Symbol ('integral' ):Function ('∫' )(Integer (1 )Symbol ('to' )Symbol ('e' ))(ln (Symbol ('x' )))Integer (2 )Symbol ('dx' )
+                        ^^^^^^
+SyntaxError: invalid syntax
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    exec(__import__("base64").b64decode("ZnJvbSBzeW1weSBpbXBvcnQgKgppbXBvcnQgc3lzCnN5cy5zdGRvdXQucmVjb25maWd1cmUoZW5jb2Rpbmc9J3V0Zi04JykKZnJvbSBzeW1weSBpbXBvcnQgc3ltYm9scywgaW50ZWdyYXRlLCBzeW1waWZ5CnggPSBzeW1ib2xzKCd4JykKZXhwciA9IHN5bXBpZnkoIkV2YWx1YXRlIHRoZSBkZWZpbml0ZSBpbnRlZ3JhbDog4oirKDEgdG8gZSkgKGxuKHgpKTIgZHgiKQpyZXN1bHQgPSBpbnRlZ3JhdGUoZXhwciwgeCkKcHJpbnQocmVzdWx0KQ==").decode())
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 6, in <module>
+  File "/usr/local/lib/python3.14/site-packages/sympy/core/sympify.py", line 509, in sympify
+    raise SympifyError('could not parse %r' % a, exc)
+sympy.core.sympify.SympifyError: Sympify of expression 'could not parse 'Evaluate the definite integral: ∫(1 to e) (ln(x))2 dx'' failed, because of exception being raised:
+SyntaxError: invalid syntax (<string>, line 1)

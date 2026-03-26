@@ -5,7 +5,7 @@ export async function POST(req: Request) {
   try {
     const { originalProblem } = await req.json();
 
-    if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY && !process.env.GEMINI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY && !process.env.GEMINI_API_KEY) {
       // Return mock data if no API key
       return NextResponse.json({
         problem_latex: "x^2 - 6x + 9 = 0",
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     }
 
     const ai = new GoogleGenAI({ 
-      apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY 
+      apiKey: process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY 
     });
 
     const prompt = `You are an expert math tutor. Your task is to generate a practice problem that tests the exact same concept as the original problem, but with different numbers.
@@ -26,7 +26,7 @@ For example, if the original problem is solving a quadratic equation by factorin
 Original Problem: ${originalProblem}`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3.1-flash-lite-preview",
       contents: prompt,
       config: {
         responseMimeType: "application/json",

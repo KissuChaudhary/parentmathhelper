@@ -9,3 +9,20 @@ body {
   background-color: #f9fafb;
   color: #111827;
 }
+
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem 0;
+}
+
+/* Fix Tailwind prose overriding KaTeX SVG styles (which breaks roots) */
+.katex svg {
+  display: inline !important;
+  margin: 0 !important;
+}
+
+/* Fix Tailwind base reset breaking KaTeX fraction borders */
+.katex * {
+  border-color: currentColor;
+}

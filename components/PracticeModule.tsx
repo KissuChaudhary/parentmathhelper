@@ -168,7 +168,7 @@ export function PracticeModule({ originalProblem }: PracticeModuleProps) {
                     >
                       <blockquote className="mt-3 border-l-4 border-indigo-200 bg-indigo-50/50 text-indigo-900 p-4 rounded-r-lg text-sm italic">
                         <span className="font-semibold not-italic block mb-1 text-indigo-700">Parent Hint:</span>
-                        "{practiceData.parent_hint}"
+                        {practiceData.parent_hint}
                       </blockquote>
                     </motion.div>
                   )}

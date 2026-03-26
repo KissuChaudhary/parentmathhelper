@@ -37,7 +37,6 @@ export function DrawingCanvas({ isOpen, onClose, onSave }: DrawingCanvasProps) {
   // Clear canvas when opened
   useEffect(() => {
     if (isOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLines([]);
       setCurrentLine([]);
       setIsDrawing(false);
