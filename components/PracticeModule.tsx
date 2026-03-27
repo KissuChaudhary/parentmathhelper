@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { CheckCircle, XCircle, Lightbulb, Target, Loader2 } from "lucide-react";
+import katex from "katex";
 import "katex/dist/katex.min.css";
-import Latex from "react-latex-next";
 
 interface PracticeModuleProps {
   originalProblem: string;
@@ -45,12 +45,11 @@ export function PracticeModule({ originalProblem }: PracticeModuleProps) {
       setShowHint(false);
     } catch (error) {
       console.error(error);
-      // Fallback for demo if API fails
       setPracticeData({
-        problem_latex: "x^2 - 6x + 9 = 0",
-        correct_answer: "x = 3",
-        parent_hint: "What number multiplies to 9 and adds to -6?",
-        success_message: "Awesome job! You nailed that quadratic equation! 🎉",
+        problem_latex: "\\frac{3}{4} + \\frac{1}{8} = ?",
+        correct_answer: "7/8",
+        parent_hint: "Ask your child what denominator both fractions can share before adding.",
+        success_message: "Awesome job! You handled a tricky fraction problem.",
       });
       setStatus("active");
     }
@@ -60,8 +59,8 @@ export function PracticeModule({ originalProblem }: PracticeModuleProps) {
     return ans
       .replace(/\s+/g, "")
       .toLowerCase()
-      .replace(/\\/g, "") // remove latex slashes
-      .replace(/[{}]/g, ""); // remove latex brackets
+      .replace(/\\/g, "")
+      .replace(/[{}]/g, "");
   };
 
   const checkAnswer = () => {
@@ -70,7 +69,6 @@ export function PracticeModule({ originalProblem }: PracticeModuleProps) {
     const normalizedUser = normalizeAnswer(userAnswer);
     const normalizedCorrect = normalizeAnswer(practiceData.correct_answer);
     
-    // Basic fuzzy matching
     if (normalizedUser === normalizedCorrect || normalizedUser.includes(normalizedCorrect) || normalizedCorrect.includes(normalizedUser)) {
       setStatus("success");
       setErrorMsg("");
@@ -109,7 +107,14 @@ export function PracticeModule({ originalProblem }: PracticeModuleProps) {
           <div className="text-center mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Practice Problem</h3>
             <div className="text-2xl py-4 bg-gray-50 rounded-xl overflow-x-auto">
-              <Latex>{`$$${practiceData.problem_latex}$$`}</Latex>
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: katex.renderToString(practiceData.problem_latex, {
+                    displayMode: true,
+                    throwOnError: false,
+                  }),
+                }}
+              />
             </div>
           </div>
 

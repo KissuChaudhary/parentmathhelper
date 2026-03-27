@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "tsx --test tests/**/*.test.ts",
     "test:extractors": "tsx --test tests/extractors/**/*.test.ts"
   },
@@ -25,7 +25,6 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-dropzone": "^15.0.0",
-    "react-latex-next": "^3.0.0",
     "react-markdown": "^10.1.0",
     "recharts": "^3.8.0",
     "rehype-katex": "^7.0.1",
