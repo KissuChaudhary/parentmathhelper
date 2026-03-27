@@ -6,12 +6,11 @@ export async function POST(req: Request) {
     const { originalProblem } = await req.json();
 
     if (!process.env.GEMINI_API_KEY && !process.env.GEMINI_API_KEY) {
-      // Return mock data if no API key
       return NextResponse.json({
-        problem_latex: "x^2 - 6x + 9 = 0",
-        correct_answer: "x = 3",
-        parent_hint: "What number multiplies to 9 and adds to -6?",
-        success_message: "Awesome job! You nailed that quadratic equation! 🎉",
+        problem_latex: "3/4 + 1/8 = ?",
+        correct_answer: "7/8",
+        parent_hint: "Ask your child what common denominator both fractions can share before adding.",
+        success_message: "Great job sticking with a harder homework skill.",
       });
     }
 
@@ -19,14 +18,17 @@ export async function POST(req: Request) {
       apiKey: process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY 
     });
 
-    const prompt = `You are an expert math tutor. Your task is to generate a practice problem that tests the exact same concept as the original problem, but with different numbers.
-Do NOT introduce any new curveballs, advanced steps, or different concepts.
-For example, if the original problem is solving a quadratic equation by factoring like x^2 - 4x + 4 = 0, the new problem should also be a simple factorable perfect square like x^2 - 6x + 9 = 0.
+    const prompt = `You generate elementary math practice for parents helping children in Grades 3-6.
+Create one new practice problem that tests the same skill as the original problem with different numbers.
+Keep it classroom-friendly and age-appropriate.
+Prioritize fractions, long division, decimals, area vs perimeter, measurement conversions, word problems, and beginning algebra patterns when relevant.
+Do not introduce high school concepts, calculus, or symbolic math.
+Return a parent hint the adult can say out loud in plain English.
 
 Original Problem: ${originalProblem}`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite-preview",
+      model: "gemini-2.5-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",

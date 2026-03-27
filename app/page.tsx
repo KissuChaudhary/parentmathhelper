@@ -106,46 +106,34 @@ export default function Page() {
           body: JSON.stringify({
             problem: userMessage.text,
             userQuery: userMessage.text,
+            mode,
           }),
         });
 
         if (!solveResponse.ok) {
-          throw new Error("Failed to solve with symbolic route");
+          throw new Error("Failed to solve elementary math problem");
         }
 
         const solvePayload = await solveResponse.json();
         const fullText =
           typeof solvePayload?.solution === "string" && solvePayload.solution.trim()
             ? solvePayload.solution
-            : "I could not produce a symbolic solution for this problem.";
-        const symbolic = solvePayload?.symbolic
+            : "I could not produce a parent-friendly math explanation for this problem.";
+        const teachingMeta = solvePayload?.metadata
           ? {
-              problemType: solvePayload.symbolic.problemType,
-              deterministicPath: solvePayload.symbolic.deterministicPath,
-              classifierConfidence: solvePayload.symbolic.classifierConfidence,
-              requiredValues: solvePayload.symbolic.requiredValues,
-              missingValues: solvePayload.symbolic.missingValues,
-              extractedParameters: solvePayload.symbolic.extractedParameters,
-              parameterConfidence: solvePayload.symbolic.parameterConfidence,
-              ambiguitySignals: solvePayload.symbolic.ambiguitySignals,
-              qualityScore: solvePayload.symbolic.qualityScore,
-              qualityBreakdown: solvePayload.symbolic.qualityBreakdown,
-              canExecuteDeterministic: solvePayload.symbolic.canExecuteDeterministic,
-              blockingReason: solvePayload.symbolic.blockingReason,
-              blockingRetryHint: solvePayload.symbolic.blockingRetryHint,
-              code: solvePayload.symbolic.code,
-              output: solvePayload.symbolic.output,
-              error: solvePayload.symbolic.error,
-              errorCode: solvePayload.symbolic.errorCode,
-              retryHint: solvePayload.symbolic.retryHint,
-              runtime: solvePayload.symbolic.runtime,
-              status:
-                solvePayload.symbolic.status ??
-                (solvePayload.symbolic.error ? "error" : solvePayload.success ? "completed" : "error"),
+              mode: solvePayload.metadata.mode,
+              gradeBand: solvePayload.metadata.gradeBand,
+              confidence: solvePayload.metadata.confidence,
+              validationPassed: solvePayload.metadata.validationPassed,
+              commonSkill: solvePayload.metadata.commonSkill,
+              hasPractice: solvePayload.metadata.hasPractice,
+              status: solvePayload.metadata.status,
+              source: solvePayload.metadata.source,
+              contentVersion: solvePayload.metadata.contentVersion,
             }
           : undefined;
         setMessages((prev) =>
-          prev.map((msg) => (msg.id === modelMessageId ? { ...msg, text: fullText, symbolic } : msg))
+          prev.map((msg) => (msg.id === modelMessageId ? { ...msg, text: fullText, teachingMeta } : msg))
         );
       } else {
         const response = await fetch("/api/chat", {

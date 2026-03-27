@@ -9,7 +9,6 @@ import { Bot, User, Loader2, Copy, RefreshCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type PracticeProblem } from "@/components/practice-module";
 import { TutorSteps } from "@/components/tutor-steps";
-import { CodeInterpreterView } from "@/components/code-interpreter-view";
 import { type ChatMode, type Message } from "@/components/chat-types";
 
 interface ChatMessageItemProps {
@@ -35,7 +34,7 @@ export function ChatMessageItem({
             <div className="w-5 h-5 rounded bg-zinc-900 flex items-center justify-center flex-shrink-0">
               <Bot size={12} className="text-white" />
             </div>
-            <span className="text-xs font-medium text-zinc-900">Gauth AI</span>
+            <span className="text-xs font-medium text-zinc-900">ParentMathHelper</span>
           </>
         ) : (
           <>
@@ -51,24 +50,6 @@ export function ChatMessageItem({
         {message.image && (
           <div className="mb-3 rounded-lg overflow-hidden border border-zinc-200 inline-block">
             <img src={message.image} alt="Uploaded math problem" className="max-w-sm h-auto max-h-64 object-contain bg-zinc-50" />
-          </div>
-        )}
-
-        {message.role === "model" && message.symbolic?.code && (
-          <div className="mb-4">
-            <CodeInterpreterView
-              code={message.symbolic.code}
-              output={message.symbolic.output}
-              error={message.symbolic.error}
-              language="python"
-              title={`Solve ${message.symbolic.problemType || "math problem"}`}
-              status={message.symbolic.status || (message.symbolic.error ? "error" : "completed")}
-            />
-            {message.symbolic.error && (message.symbolic.retryHint || message.symbolic.errorCode) && (
-              <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                {message.symbolic.retryHint || "Try rewriting the problem in a shorter, clearer math form."}
-              </div>
-            )}
           </div>
         )}
 
@@ -104,18 +85,34 @@ export function ChatMessageItem({
                 );
               }
 
+              const detailSplitMatch = message.text.match(/(?=\n#\s*(Why This Works|How To Explain It|Common Mistake))/i);
+              const primaryText = detailSplitMatch ? message.text.slice(0, detailSplitMatch.index) : message.text;
+              const detailText = detailSplitMatch ? message.text.slice(detailSplitMatch.index || 0) : "";
+
               return (
                 <>
+                  {message.role === "model" && message.teachingMeta?.gradeBand && (
+                    <div className="mb-3 flex items-center gap-2 text-xs text-zinc-500">
+                      <span className="rounded-full bg-zinc-100 px-2.5 py-1 font-medium text-zinc-700">
+                        {message.teachingMeta.gradeBand}
+                      </span>
+                      {message.teachingMeta.commonSkill && (
+                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700">
+                          {toTitleCase(message.teachingMeta.commonSkill)}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <ReactMarkdown
                     remarkPlugins={[remarkMath, remarkGfm]}
                     rehypePlugins={[rehypeKatex]}
                     components={markdownComponents}
                   >
-                    {message.text.split(/(?=# Explanation)/i)[0]}
+                    {primaryText}
                   </ReactMarkdown>
 
                   <AnimatePresence>
-                    {message.isExplanationVisible && message.text.match(/(?=# Explanation)/i) && (
+                    {Boolean(detailText) && message.isExplanationVisible && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
@@ -127,7 +124,7 @@ export function ChatMessageItem({
                           rehypePlugins={[rehypeKatex]}
                           components={markdownComponents}
                         >
-                          {message.text.split(/(?=# Explanation)/i).slice(1).join("")}
+                          {detailText}
                         </ReactMarkdown>
                       </motion.div>
                     )}
@@ -147,12 +144,13 @@ export function ChatMessageItem({
 
         {message.role === "model" && !message.isStreaming && message.text && (
           <div className="flex items-center gap-2 mt-4 text-zinc-500">
-            {message.text.match(/(?=# Explanation)/i) && !message.isExplanationVisible && (
+            {message.text.match(/(?=\n#\s*(Why This Works|How To Explain It|Common Mistake))/i) &&
+              !message.isExplanationVisible && (
               <button
                 onClick={() => onShowExplanation(message.id)}
                 className="text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-1.5 rounded-full transition-colors mr-2"
               >
-                Explain it
+                Show teaching notes
               </button>
             )}
             <button className="p-1.5 hover:bg-zinc-100 rounded-md transition-colors hover:text-zinc-900"><Copy size={16} /></button>
@@ -162,4 +160,12 @@ export function ChatMessageItem({
       </div>
     </div>
   );
+}
+
+function toTitleCase(text: string) {
+  return text
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }

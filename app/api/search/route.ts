@@ -1,5 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
-import { mathInterpreterTool, mathSymbolicSolverTool } from "@/lib/tools/index";
+import { solveMathProblemPayload } from "@/lib/math/solve-payload";
 
 type SearchPayload = {
   query?: string;
@@ -26,35 +25,17 @@ export async function POST(req: Request) {
       return new Response("Missing query", { status: 400 });
     }
 
-    const plan = await mathSymbolicSolverTool({ problem });
-    const execution = await mathInterpreterTool({
-      title: "search_math_solve",
-      code: plan.generatedCode,
-      problemType: plan.problemType,
-      expectedOutput: "exact symbolic output",
+    const result = await solveMathProblemPayload({
+      problem,
+      userQuery: problem,
+      mode: "solver",
     });
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      const fallback = execution.success ? execution.output : execution.error || "Symbolic solve failed";
-      return new Response(fallback, {
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
+    if ("error" in result) {
+      return new Response(result.error, { status: 400 });
     }
 
-    const ai = new GoogleGenAI({ apiKey });
-    const prompt = `Solve using the exact symbolic result.
-Problem: ${problem}
-Symbolic output: ${execution.output || "(empty)"}
-Symbolic error: ${execution.error || "None"}
-Give a concise final answer and short explanation.`;
-
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite-preview",
-      contents: prompt,
-    });
-
-    return new Response(response.text || execution.output, {
+    return new Response(result.solution, {
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
   } catch (error: any) {

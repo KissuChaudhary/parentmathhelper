@@ -79,8 +79,8 @@ export function PromptInput({
              </span> 
              <span className="leading-6 text-xs truncate min-w-0 opacity-80">
                {mode === "solver" 
-                 ? "Direct answers and step-by-step math solutions" 
-                 : "Guided explanations and Socratic teaching method"}
+                 ? "School-friendly steps for Grades 3-6 homework" 
+                 : "Parent coaching for fractions, division, and word problems"}
              </span>
           </div>
 
@@ -122,7 +122,11 @@ export function PromptInput({
                 onKeyDown={handleKeyDown}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
-                placeholder={mode === "solver" ? "Ask a math problem..." : "Ask me to help you explain..."}
+                placeholder={
+                  mode === "solver"
+                    ? "Paste a fraction, long division, decimal, or word problem..."
+                    : "Ask how to explain the homework method to your child..."
+                }
                 className="w-full max-h-[216px] text-sm bg-transparent resize-none outline-none placeholder:text-zinc-400"
                 style={{ height: "40px" }}
                 rows={1}
@@ -167,7 +171,7 @@ export function PromptInput({
                     )}
                   >
                     <Zap size={12} />
-                    Solver
+                    Solve It
                   </button>
                   <button 
                     onClick={() => setMode("tutor")}
@@ -177,7 +181,7 @@ export function PromptInput({
                     )}
                   >
                     <BrainCircuit size={12} />
-                    Tutor
+                    Teach It
                   </button>
                 </div>
 
@@ -201,7 +205,7 @@ export function PromptInput({
         
         <div className="text-center mt-3">
            <p className="text-xs text-zinc-400">
-             AI can make mistakes. Check important info.
+             Built for parent-guided Grades 3-6 math help. Double-check important homework answers.
            </p>
         </div>
       </div>

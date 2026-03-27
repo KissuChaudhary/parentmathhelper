@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildProblemHash } from "@/lib/cache/math-cache";
-import { mathSymbolicSolverTool } from "@/lib/tools/index";
+import { extractCleanMath } from "@/lib/math/llm-extractor";
+import { inferElementaryGradeBand, inferElementarySkill } from "@/lib/math/solve-payload";
 
 export async function POST(req: Request) {
   try {
@@ -10,15 +11,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Problem is required" }, { status: 400 });
     }
 
-    const parsed = await mathSymbolicSolverTool({
+    const normalizedProblem = await extractCleanMath(
       problem,
-      context: typeof context === "string" ? context : undefined,
-    });
+      typeof context === "string" ? context : undefined
+    );
 
     return NextResponse.json({
       success: true,
-      hash: buildProblemHash(problem),
-      parsed,
+      hash: buildProblemHash(normalizedProblem),
+      parsed: {
+        originalProblem: problem,
+        normalizedProblem,
+        gradeBand: inferElementaryGradeBand(
+          `${normalizedProblem} ${typeof context === "string" ? context : ""}`.trim()
+        ),
+        commonSkill: inferElementarySkill(normalizedProblem),
+        scope: "elementary-homework",
+      },
     });
   } catch (error: any) {
     return NextResponse.json(

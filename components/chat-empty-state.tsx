@@ -1,6 +1,6 @@
 "use client";
 
-import { Calculator, FlaskConical, Dna, FunctionSquare } from "lucide-react";
+import { Calculator, Clock3, Coins, Pizza } from "lucide-react";
 
 function SubjectIcon({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
@@ -17,13 +17,16 @@ export function ChatEmptyState() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center">
       <h1 className="text-3xl font-semibold mb-2 text-zinc-900 tracking-tight">
-        How can I help you today?
+        Help your child with math homework
       </h1>
+      <p className="max-w-xl text-sm text-zinc-500">
+        Built for parents of Grades 3-6 children who need help with fractions, division, decimals, and tricky word problems.
+      </p>
       <div className="flex flex-wrap justify-center gap-4 mt-8 text-zinc-500">
-        <SubjectIcon icon={<FunctionSquare size={16} />} label="Math" />
-        <SubjectIcon icon={<Calculator size={16} />} label="Calculus" />
-        <SubjectIcon icon={<FlaskConical size={16} />} label="Chemistry" />
-        <SubjectIcon icon={<Dna size={16} />} label="Biology" />
+        <SubjectIcon icon={<Pizza size={16} />} label="Fractions" />
+        <SubjectIcon icon={<Calculator size={16} />} label="Long Division" />
+        <SubjectIcon icon={<Clock3 size={16} />} label="Word Problems" />
+        <SubjectIcon icon={<Coins size={16} />} label="Decimals" />
       </div>
     </div>
   );
