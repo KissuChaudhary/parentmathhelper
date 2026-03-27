@@ -34,12 +34,15 @@ export function DrawingCanvas({ isOpen, onClose, onSave }: DrawingCanvasProps) {
   const [currentLine, setCurrentLine] = useState<number[][]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
 
-  // Clear canvas when opened
   useEffect(() => {
     if (isOpen) {
-      setLines([]);
-      setCurrentLine([]);
-      setIsDrawing(false);
+      const resetFrame = requestAnimationFrame(() => {
+        setLines([]);
+        setCurrentLine([]);
+        setIsDrawing(false);
+      });
+
+      return () => cancelAnimationFrame(resetFrame);
     }
   }, [isOpen]);
 
@@ -48,7 +51,6 @@ export function DrawingCanvas({ isOpen, onClose, onSave }: DrawingCanvasProps) {
     const svg = svgRef.current;
     const rect = svg.getBoundingClientRect();
     
-    // Calculate scale to account for CSS transforms (like framer-motion scale)
     const scaleX = rect.width ? svg.clientWidth / rect.width : 1;
     const scaleY = rect.height ? svg.clientHeight / rect.height : 1;
     
@@ -91,18 +93,15 @@ export function DrawingCanvas({ isOpen, onClose, onSave }: DrawingCanvasProps) {
     const width = svg.clientWidth;
     const height = svg.clientHeight;
     
-    // Create a canvas to render the SVG
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     
-    // Fill white background
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, width, height);
     
-    // Serialize SVG
     const svgClone = svg.cloneNode(true) as SVGSVGElement;
     svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
     const svgData = new XMLSerializer().serializeToString(svgClone);

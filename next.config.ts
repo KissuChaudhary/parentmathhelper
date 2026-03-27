@@ -2,9 +2,6 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: false,
   },
@@ -19,6 +16,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  turbopack: {},
   output: 'standalone',
   transpilePackages: ['motion'],
   webpack: (config, {dev}) => {
