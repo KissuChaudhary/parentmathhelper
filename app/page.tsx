@@ -12,14 +12,17 @@ import { type ChatMode, type Message } from "@/components/chat-types";
 
 export default function Page() {
   const [mode, setMode] = useState<ChatMode>("solver");
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [solverMessages, setSolverMessages] = useState<Message[]>([]);
+  const [tutorMessages, setTutorMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [diagnoseEnabled, setDiagnoseEnabled] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const markdownComponents = useMemo(() => getMarkdownComponents(), []);
+  const activeMessages = mode === "solver" ? solverMessages : tutorMessages;
 
   const scrollToBottom = (force = false) => {
     if (scrollContainerRef.current) {
@@ -32,7 +35,16 @@ export default function Page() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [activeMessages]);
+
+  const updateMessagesForMode = (targetMode: ChatMode, updater: (messages: Message[]) => Message[]) => {
+    if (targetMode === "solver") {
+      setSolverMessages(updater);
+      return;
+    }
+
+    setTutorMessages(updater);
+  };
 
   const setImageFromFile = (file: File | undefined) => {
     if (!file) return;
@@ -74,31 +86,109 @@ export default function Page() {
     }
   };
 
+  const handleModeChange = (nextMode: ChatMode) => {
+    if (isLoading || nextMode === mode) return;
+    setMode(nextMode);
+    setInput("");
+    setSelectedImage(null);
+    setDiagnoseEnabled(false);
+  };
+
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if ((!input.trim() && !selectedImage) || isLoading) return;
 
+    const currentMode = mode;
+    const sessionMessages = currentMode === "solver" ? solverMessages : tutorMessages;
+    const currentInput = input;
+    const currentImage = selectedImage;
+    const latestModelAnswer =
+      [...sessionMessages]
+        .reverse()
+        .find((message) => message.role === "model" && Boolean(message.text.trim()))?.text || "";
+    const sessionSourceProblem =
+      [...sessionMessages].reverse().find((message) => typeof message.sourceProblem === "string" && message.sourceProblem.trim())
+        ?.sourceProblem || currentInput.trim();
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      text: input,
-      image: selectedImage || undefined,
+      mode: currentMode,
+      responseType: "user_input",
+      text: diagnoseEnabled ? "Please review my child’s work." : currentInput,
+      image: currentImage || undefined,
+      sourceProblem: sessionSourceProblem || undefined,
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    updateMessagesForMode(currentMode, (prev) => [...prev, userMessage]);
     setInput("");
     setSelectedImage(null);
     setIsLoading(true);
     setTimeout(() => scrollToBottom(true), 50);
 
     const modelMessageId = (Date.now() + 1).toString();
-    setMessages((prev) => [
+    updateMessagesForMode(currentMode, (prev) => [
       ...prev,
-      { id: modelMessageId, role: "model", text: "", isStreaming: true },
+      {
+        id: modelMessageId,
+        role: "model",
+        mode: currentMode,
+        responseType: currentMode === "solver" ? "solver_response" : "tutor_response",
+        text: "",
+        isStreaming: true,
+        sourceProblem: sessionSourceProblem || undefined,
+      },
     ]);
 
     try {
-      const shouldUseMathSolveRoute = mode === "solver" && !selectedImage && Boolean(userMessage.text.trim());
+      if (diagnoseEnabled) {
+        const diagnosisOriginalProblem =
+          sessionSourceProblem || currentInput.trim() || "Review the child’s work shown here.";
+
+        const response = await fetch("/api/math/diagnose", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: currentMode,
+            originalProblem: diagnosisOriginalProblem,
+            priorAnswer: latestModelAnswer,
+            childWorkImage: currentImage,
+            note: currentInput.trim(),
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to diagnose child work");
+        }
+
+        const payload = await response.json();
+        const diagnosisText =
+          typeof payload?.diagnosis === "string" && payload.diagnosis.trim()
+            ? payload.diagnosis
+            : "I could not review the child’s work from that submission.";
+
+        updateMessagesForMode(currentMode, (prev) =>
+          prev.map((msg) =>
+            msg.id === modelMessageId
+              ? {
+                  ...msg,
+                  responseType: "diagnosis_response",
+                  text: diagnosisText,
+                  sourceProblem: diagnosisOriginalProblem || msg.sourceProblem,
+                }
+              : msg
+          )
+        );
+
+        return;
+      }
+
+      const shouldUseMathSolveRoute =
+        currentMode === "solver" &&
+        !currentImage &&
+        Boolean(userMessage.text.trim()) &&
+        sessionMessages.length === 0;
+
       if (shouldUseMathSolveRoute) {
         const solveResponse = await fetch("/api/math/solve", {
           method: "POST",
@@ -106,7 +196,7 @@ export default function Page() {
           body: JSON.stringify({
             problem: userMessage.text,
             userQuery: userMessage.text,
-            mode,
+            mode: currentMode,
           }),
         });
 
@@ -132,14 +222,26 @@ export default function Page() {
               contentVersion: solvePayload.metadata.contentVersion,
             }
           : undefined;
-        setMessages((prev) =>
-          prev.map((msg) => (msg.id === modelMessageId ? { ...msg, text: fullText, teachingMeta } : msg))
+        updateMessagesForMode(currentMode, (prev) =>
+          prev.map((msg) =>
+            msg.id === modelMessageId
+              ? {
+                  ...msg,
+                  text: fullText,
+                  teachingMeta,
+                  sourceProblem: sessionSourceProblem || msg.sourceProblem,
+                  actions: sessionSourceProblem
+                    ? [{ type: "create_similar_practice", label: "Create similar practice" }]
+                    : undefined,
+                }
+              : msg
+          )
         );
       } else {
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: [...messages, userMessage], mode }),
+          body: JSON.stringify({ messages: [...sessionMessages, userMessage], mode: currentMode }),
         });
 
         if (!response.ok || !response.body) throw new Error("Network response was not ok");
@@ -152,32 +254,57 @@ export default function Page() {
           const { done, value } = await reader.read();
           if (done) break;
           fullText += decoder.decode(value, { stream: true });
-          setMessages((prev) =>
+          updateMessagesForMode(currentMode, (prev) =>
             prev.map((msg) => (msg.id === modelMessageId ? { ...msg, text: fullText } : msg))
           );
         }
+
+        updateMessagesForMode(currentMode, (prev) =>
+          prev.map((msg) =>
+            msg.id === modelMessageId
+              ? {
+                  ...msg,
+                  sourceProblem: sessionSourceProblem || msg.sourceProblem,
+                  actions: sessionSourceProblem
+                    ? [{ type: "create_similar_practice", label: "Create similar practice" }]
+                    : undefined,
+                }
+              : msg
+          )
+        );
       }
 
-      setMessages((prev) =>
+      updateMessagesForMode(currentMode, (prev) =>
         prev.map((msg) => (msg.id === modelMessageId ? { ...msg, isStreaming: false } : msg))
       );
     } catch (error) {
       console.error("Error generating response:", error);
-      setMessages((prev) =>
+      updateMessagesForMode(currentMode, (prev) =>
         prev.map((msg) =>
           msg.id === modelMessageId
-            ? { ...msg, text: "Sorry, I encountered an error while solving this problem. Please try again.", isStreaming: false }
+            ? {
+                ...msg,
+                text: "Sorry, I encountered an error while solving this problem. Please try again.",
+                isStreaming: false,
+              }
             : msg
         )
       );
     } finally {
       setIsLoading(false);
+      setDiagnoseEnabled(false);
     }
   };
 
-  const handleShowExplanation = (messageId: string) => {
-    setMessages((prev) =>
+  const handleShowExplanation = (messageId: string, targetMode: ChatMode) => {
+    updateMessagesForMode(targetMode, (prev) =>
       prev.map((msg) => (msg.id === messageId ? { ...msg, isExplanationVisible: true } : msg))
+    );
+  };
+
+  const handleShowPractice = (messageId: string, targetMode: ChatMode) => {
+    updateMessagesForMode(targetMode, (prev) =>
+      prev.map((msg) => (msg.id === messageId ? { ...msg, isPracticeVisible: true } : msg))
     );
   };
 
@@ -207,18 +334,18 @@ export default function Page() {
 
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto min-h-0 px-4 md:px-8 scroll-smooth">
         <div className="max-w-4xl mx-auto w-full h-full flex flex-col py-6">
-          {messages.length === 0 ? (
+          {activeMessages.length === 0 ? (
             <ChatEmptyState />
           ) : (
             <div className="flex flex-col gap-8 pb-2">
-              {messages.map((message) => (
+              {activeMessages.map((message) => (
                 <ChatMessageItem
                   key={message.id}
                   message={message}
-                  mode={mode}
                   markdownComponents={markdownComponents}
                   onGeneratePractice={generatePracticeProblem}
                   onShowExplanation={handleShowExplanation}
+                  onShowPractice={handleShowPractice}
                 />
               ))}
               <div ref={messagesEndRef} className="h-2" />
@@ -237,7 +364,9 @@ export default function Page() {
           setSelectedImage={setSelectedImage}
           onImageUpload={() => fileInputRef.current?.click()}
           mode={mode}
-          setMode={setMode}
+          setMode={handleModeChange}
+          diagnoseEnabled={diagnoseEnabled}
+          setDiagnoseEnabled={setDiagnoseEnabled}
         />
       </div>
     </div>

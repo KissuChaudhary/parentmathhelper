@@ -8,7 +8,9 @@ import {
   X,
   PenTool,
   Zap,
-  BrainCircuit
+  BrainCircuit,
+  Brain,
+  CircleHelp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DrawingCanvas } from "./drawing-canvas";
@@ -23,6 +25,8 @@ interface PromptInputProps {
   onImageUpload: () => void;
   mode: "solver" | "tutor";
   setMode: (mode: "solver" | "tutor") => void;
+  diagnoseEnabled: boolean;
+  setDiagnoseEnabled: (enabled: boolean) => void;
 }
 
 export function PromptInput({
@@ -34,11 +38,15 @@ export function PromptInput({
   setSelectedImage,
   onImageUpload,
   mode,
-  setMode
+  setMode,
+  diagnoseEnabled,
+  setDiagnoseEnabled,
 }: PromptInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const diagnoseInfoRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [isCanvasOpen, setIsCanvasOpen] = useState(false);
+  const [isDiagnoseInfoOpen, setIsDiagnoseInfoOpen] = useState(false);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -47,6 +55,24 @@ export function PromptInput({
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
     }
   }, [input]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (!diagnoseInfoRef.current) return;
+      const target = event.target as Node;
+      if (!diagnoseInfoRef.current.contains(target)) {
+        setIsDiagnoseInfoOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -70,7 +96,8 @@ export function PromptInput({
             : "border-emerald-100 bg-emerald-50/30"
         )}>
           {/* Header Area */}
-          <div className="flex px-3 mb-1 items-center text-zinc-500">
+          <div className="flex px-3 mb-1 items-center justify-between gap-3 text-zinc-500">
+            <div className="flex min-w-0 items-center">
              <span className={cn(
                "leading-6 text-[13px] font-medium text-nowrap mr-1",
                mode === "tutor" && "text-emerald-600"
@@ -78,10 +105,74 @@ export function PromptInput({
                {mode === "solver" ? "Solver:" : "Tutor:"}
              </span> 
              <span className="leading-6 text-xs truncate min-w-0 opacity-80">
-               {mode === "solver" 
-                 ? "School-friendly steps for Grades 3-6 homework" 
-                 : "Parent coaching for fractions, division, and word problems"}
+               {diagnoseEnabled
+                 ? mode === "solver"
+                   ? "Review your child’s work from a photo, upload, or annotation"
+                   : "Review your child’s work and turn it into parent coaching"
+                 : mode === "solver" 
+                   ? "School-friendly steps for Grades 3-6 homework" 
+                   : "Parent coaching for fractions, division, and word problems"}
              </span>
+            </div>
+            <div ref={diagnoseInfoRef} className="relative shrink-0">
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => {
+                    setDiagnoseEnabled(!diagnoseEnabled);
+                    setIsDiagnoseInfoOpen(false);
+                  }}
+                  disabled={isLoading}
+                  aria-pressed={diagnoseEnabled}
+                  aria-label={diagnoseEnabled ? "Disable diagnose mode" : "Enable diagnose mode"}
+                  className={cn(
+                    "inline-flex h-7 w-7 items-center justify-center rounded-lg border transition-all duration-200 disabled:opacity-50",
+                    diagnoseEnabled
+                      ? "border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+                      : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+                  )}
+                >
+                  <Brain size={16} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="What diagnose mode does"
+                  onClick={() => setIsDiagnoseInfoOpen((prev) => !prev)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+                >
+                  <CircleHelp size={15} />
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {isDiagnoseInfoOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                    transition={{ duration: 0.18 }}
+                    className="absolute bottom-full right-0 z-40 mb-3 w-80 max-w-[calc(100vw-2rem)] origin-bottom-right overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_24px_60px_-24px_rgba(0,0,0,0.45)]"
+                  >
+                    <div className="absolute -bottom-2 right-4 h-4 w-4 rotate-45 border-b border-r border-zinc-200 bg-white" />
+                    <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-3">
+                      <p className="text-sm font-semibold text-zinc-900">Diagnose mode</p>
+                      <p className="mt-1 text-xs text-zinc-500">
+                        Built for reviewing your child’s written work without changing your current Solve or Teach mode.
+                      </p>
+                    </div>
+                    <div className="space-y-2 px-4 py-3 text-xs leading-5 text-zinc-600">
+                      <p>
+                        Upload a notebook photo, worksheet snap, or annotated image and I’ll review the work in the current mode.
+                      </p>
+                      <ul className="space-y-1.5 text-zinc-500">
+                        <li>• Solve It: spot the first math step to double-check</li>
+                        <li>• Teach It: explain what the child likely misunderstood</li>
+                        <li>• Works with upload, camera, drawing, or a short note</li>
+                      </ul>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           <div className="relative flex flex-col bg-white rounded-xl border border-[#0000001F] shadow-[0px_4px_16px_0px_#0000000D] overflow-hidden transition-colors duration-300">
@@ -123,9 +214,11 @@ export function PromptInput({
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 placeholder={
-                  mode === "solver"
-                    ? "Paste a fraction, long division, decimal, or word problem..."
-                    : "Ask how to explain the homework method to your child..."
+                  diagnoseEnabled
+                    ? "Add a photo, upload, draw on the work, or type what you want me to check..."
+                    : mode === "solver"
+                      ? "Paste a fraction, long division, decimal, or word problem..."
+                      : "Ask how to explain the homework method to your child..."
                 }
                 className="w-full max-h-[216px] text-sm bg-transparent resize-none outline-none placeholder:text-zinc-400"
                 style={{ height: "40px" }}
@@ -165,9 +258,14 @@ export function PromptInput({
                   />
                   <button 
                     onClick={() => setMode("solver")}
+                    disabled={isLoading || diagnoseEnabled}
                     className={cn(
-                      "relative z-10 px-3 py-1 text-xs font-medium transition-colors duration-200 flex items-center gap-1.5",
-                      mode === "solver" ? "text-zinc-900" : "text-zinc-500 hover:text-zinc-900"
+                      "relative z-10 px-3 py-1 text-xs font-medium transition-colors duration-200 flex items-center gap-1.5 disabled:opacity-50",
+                      mode === "solver"
+                        ? "text-zinc-900"
+                        : diagnoseEnabled
+                          ? "text-zinc-400"
+                          : "text-zinc-500 hover:text-zinc-900"
                     )}
                   >
                     <Zap size={12} />
@@ -175,9 +273,14 @@ export function PromptInput({
                   </button>
                   <button 
                     onClick={() => setMode("tutor")}
+                    disabled={isLoading || diagnoseEnabled}
                     className={cn(
-                      "relative z-10 px-3 py-1 text-xs font-medium transition-colors duration-200 flex items-center gap-1.5",
-                      mode === "tutor" ? "text-emerald-700" : "text-zinc-500 hover:text-zinc-900"
+                      "relative z-10 px-3 py-1 text-xs font-medium transition-colors duration-200 flex items-center gap-1.5 disabled:opacity-50",
+                      mode === "tutor"
+                        ? "text-emerald-700"
+                        : diagnoseEnabled
+                          ? "text-zinc-400"
+                          : "text-zinc-500 hover:text-zinc-900"
                     )}
                   >
                     <BrainCircuit size={12} />

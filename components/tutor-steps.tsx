@@ -8,16 +8,13 @@ import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PracticeModule, type PracticeProblem } from "@/components/practice-module";
 
 interface TutorStepsProps {
   steps: string[];
   markdownComponents: any;
-  originalText: string;
-  onGeneratePractice: () => Promise<PracticeProblem | null>;
 }
 
-export function TutorSteps({ steps, markdownComponents, originalText, onGeneratePractice }: TutorStepsProps) {
+export function TutorSteps({ steps, markdownComponents }: TutorStepsProps) {
   const [openStep, setOpenStep] = useState<number>(0);
 
   return (
@@ -75,9 +72,6 @@ export function TutorSteps({ steps, markdownComponents, originalText, onGenerate
         );
       })}
 
-      {openStep === steps.length - 1 && (
-        <PracticeModule originalProblem={originalText} onGenerate={onGeneratePractice} />
-      )}
     </div>
   );
 }
