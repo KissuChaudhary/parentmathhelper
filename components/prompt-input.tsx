@@ -270,6 +270,7 @@ export function PromptInput({
                   >
                     <Zap size={12} />
                     Solve It
+                    
                   </button>
                   <button 
                     onClick={() => setMode("tutor")}
