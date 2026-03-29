@@ -1,8 +1,10 @@
 import { Metadata } from 'next'
-import { commonPageMetadata } from '@/lib/seo'
 import LoginClient from './login-client'
 
-export const metadata: Metadata = commonPageMetadata.login()
+export const metadata: Metadata = {
+  title: 'Login',
+  description: 'Login to your account',
+}
 
 export default function LoginPage() {
   return (

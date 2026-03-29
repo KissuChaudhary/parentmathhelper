@@ -5,12 +5,11 @@ import { useFormStatus } from "react-dom"
 import { Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import Button from "@/components/landing/Button"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Loader2, ArrowRight } from "lucide-react"
 import { signInWithMagicLink, signInWithGoogle } from "./actions"
-import { Navbar } from '@/components/landing/Navbar';
-import { Footer } from '@/components/landing/Footer';
+
 import { CSRFProvider, CSRFInput, useCSRF } from "@/components/csrf-provider"
 
 type AuthState = {
@@ -81,7 +80,6 @@ function LoginFormContent({ displayError, state, formAction }: {
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-stone-50/50">
-      <Navbar />
 
       <main className="flex-1 flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8 relative z-10">
 
@@ -192,7 +190,6 @@ function LoginFormContent({ displayError, state, formAction }: {
         </div>
       </main>
 
-      <Footer />
     </div>
   )
 }
