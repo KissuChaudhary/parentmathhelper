@@ -53,9 +53,14 @@ export function PromptInput({
 }: PromptInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const diagnoseInfoRef = useRef<HTMLDivElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
   const [isCanvasOpen, setIsCanvasOpen] = useState(false);
   const [isDiagnoseInfoOpen, setIsDiagnoseInfoOpen] = useState(false);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const imageIntentCopy = getImageIntentCopy(selectedImageIntent, mode);
+  const placeholderPhrases = getAnimatedPlaceholderPhrases(mode, diagnoseEnabled);
+  const activePlaceholder = placeholderPhrases[placeholderIndex % placeholderPhrases.length] || "";
+  const showAnimatedPlaceholder = !isFocused && !input.trim();
 
   // Auto-resize textarea
   useEffect(() => {
@@ -82,6 +87,20 @@ export function PromptInput({
       document.removeEventListener("touchstart", handlePointerDown);
     };
   }, []);
+
+  useEffect(() => {
+    setPlaceholderIndex(0);
+  }, [mode, diagnoseEnabled]);
+
+  useEffect(() => {
+    if (!showAnimatedPlaceholder || placeholderPhrases.length <= 1) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setPlaceholderIndex((current) => (current + 1) % placeholderPhrases.length);
+    }, 3200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [placeholderIndex, placeholderPhrases, showAnimatedPlaceholder]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -267,17 +286,22 @@ export function PromptInput({
             </AnimatePresence>
 
             <div className="relative px-4 py-3.5">  
+              {showAnimatedPlaceholder && (
+                <div className="pointer-events-none absolute inset-x-4 top-1/2 -translate-y-1/2 overflow-hidden text-[15px] text-zinc-400 md:text-base">
+                  <AnimatePresence mode="wait" initial={false}>
+                    <WavePlaceholderPhrase key={`${mode}-${diagnoseEnabled}-${activePlaceholder}`} phrase={activePlaceholder} />
+                  </AnimatePresence>
+                </div>
+              )}
               <textarea 
                 ref={textareaRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
                 placeholder={
-                  diagnoseEnabled
-                    ? "Add a photo, upload, draw on the work, or type what you want me to check..."
-                    : mode === "solver"
-                      ? "Paste a fraction, long division, decimal, or word problem..."
-                      : "Ask how to explain the homework method to your child..."
+                  ""
                 }
                 className="w-full max-h-[216px] bg-transparent text-[15px] md:text-base resize-none outline-none placeholder:text-zinc-400"
                 style={{ height: "40px" }}
@@ -379,6 +403,95 @@ export function PromptInput({
         </div>
       </div>
     </>
+  );
+}
+
+function getAnimatedPlaceholderPhrases(mode: "solver" | "tutor", diagnoseEnabled: boolean) {
+  if (diagnoseEnabled) {
+    return mode === "solver"
+      ? [
+          "Upload your child’s work and I’ll spot the first step to double-check...",
+          "Take a quick photo of the notebook page for a calm mistake check...",
+          "Add a short note if there is one part of the work you want reviewed...",
+        ]
+      : [
+          "Upload your child’s work and I’ll turn it into parent coaching...",
+          "Take a quick photo so I can explain what the child may have misunderstood...",
+          "Add a short note if you want help with one confusing step...",
+        ];
+  }
+
+  return mode === "solver"
+    ? [
+        "Paste a fraction, long division, decimal, or word problem...",
+        "Upload a worksheet photo and get school-friendly steps...",
+        "Ask to verify a final answer or show another method...",
+      ]
+    : [
+        "Ask how to explain the homework method to your child...",
+        "Upload the worksheet and I’ll turn it into a parent script...",
+        "Ask for a simpler analogy, shorter explanation, or one stuck step...",
+      ];
+}
+
+function WavePlaceholderPhrase({ phrase }: { phrase: string }) {
+  return (
+    <motion.span
+      className="inline-block whitespace-pre-wrap"
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      variants={{
+        hidden: {},
+        visible: {
+          transition: {
+            staggerChildren: 0.02,
+          },
+        },
+        exit: {
+          transition: {
+            staggerChildren: 0.016,
+          },
+        },
+      }}
+    >
+      {phrase.split("").map((character, index) => (
+        <motion.span
+          key={`${phrase}-${index}-${character}`}
+          className="inline-block"
+          variants={{
+            hidden: {
+              opacity: 0,
+              y: 16,
+              rotateX: -18,
+              filter: "blur(4px)",
+            },
+            visible: {
+              opacity: 1,
+              y: 0,
+              rotateX: 0,
+              filter: "blur(0px)",
+              transition: {
+                duration: 0.46,
+                ease: [0.22, 1, 0.36, 1],
+              },
+            },
+            exit: {
+              opacity: 0,
+              y: -14,
+              rotateX: 14,
+              filter: "blur(3px)",
+              transition: {
+                duration: 0.28,
+                ease: [0.4, 0, 1, 1],
+              },
+            },
+          }}
+        >
+          {character === " " ? "\u00A0" : character}
+        </motion.span>
+      ))}
+    </motion.span>
   );
 }
 
