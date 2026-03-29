@@ -1,4 +1,3 @@
-import { config as loadDotEnv } from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 import { evaluate } from "mathjs";
 import { buildProblemHash, cacheSolution, getCachedSolution } from "@/lib/cache/math-cache";
@@ -52,8 +51,6 @@ type LocalArithmeticSolution = {
   answerValue: number;
   answerText: string;
 };
-
-let hasLoadedLocalEnv = false;
 
 const CONTENT_VERSION = "grades-3-6-v1";
 
@@ -194,6 +191,7 @@ $$
 # Common Mistake
 - [1-2 short bullets]`;
   }
+
   return `Return this exact structure:
 
 # What The Child Needs To Understand
@@ -219,27 +217,11 @@ $$
 - [1-2 short bullets]`;
 }
 
-function getGeminiApiKey() {
-  if (typeof process.env.GEMINI_API_KEY === "string" && process.env.GEMINI_API_KEY.trim()) {
-    return process.env.GEMINI_API_KEY.trim();
-  }
-
-  if (!hasLoadedLocalEnv) {
-    loadDotEnv({ path: ".env.local" });
-    loadDotEnv({ path: ".env" });
-    hasLoadedLocalEnv = true;
-  }
-
-  return typeof process.env.GEMINI_API_KEY === "string" ? process.env.GEMINI_API_KEY.trim() : "";
-}
-
 export function inferElementarySkill(problem: string) {
   const text = problem.toLowerCase();
   if (/\b(fraction|fractions|numerator|denominator|equivalent|common denominator|mixed number|improper)\b|\/\d/.test(text)) return "fractions";
   if (/\b(decimal|tenths|hundredths|place value)\b|\d+\.\d+/.test(text)) return "decimals";
   if (/\b(long division|divide|division|quotient|remainder)\b|÷/.test(text)) return "long division";
-  if (/\b(angle|angles|vertex|vertices|ray|rays|line segment|segment|triangle|quadrilateral|polygon|interior angle|arms)\b/.test(text)) return "geometry";
-  if (/\b(box plot|quartile|quartiles|median|minimum|maximum|five-number summary|interquartile)\b/.test(text)) return "data handling";
   if (/\b(word problem|altogether|left|remain|shared|each|total|more|less|how many|how much|in all|altogether)\b/.test(text)) return "word problems";
   if (/\b(perimeter|area)\b/.test(text)) return "area and perimeter";
   if (/\b(measure|measurement|convert|conversion|length|weight|mass|liter|ml|cm|meter|inch|foot|yard|mile|kilometer)\b/.test(text)) return "measurement conversions";
@@ -254,7 +236,7 @@ export function inferElementarySkill(problem: string) {
 
 export function inferElementaryGradeBand(problem: string) {
   const text = problem.toLowerCase();
-  if (/\b(long division|equivalent fraction|common denominator|decimal|perimeter|area|measurement conversion|conversion|pattern|equation|multi-step|quartile|box plot|interior angle|polygon|ray|vertex)\b|\d\/\d/.test(text)) {
+  if (/\b(long division|equivalent fraction|common denominator|decimal|perimeter|area|measurement conversion|conversion|pattern|equation|multi-step)\b|\d\/\d/.test(text)) {
     return "Grades 4-6";
   }
   if (/\b(fraction|multiply|division|remainder|array|equal groups|word problem)\b/.test(text)) {
@@ -535,7 +517,7 @@ async function runModelCompletion({
   prompt: string;
   image?: string;
 }) {
-  const apiKey = getGeminiApiKey();
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return "";
 
   const ai = new GoogleGenAI({ apiKey });
@@ -557,7 +539,7 @@ async function runModelCompletion({
         ]
       : prompt;
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-2.5-flash-lite",
     contents,
     config: {
       systemInstruction,
@@ -596,30 +578,20 @@ export async function solveMathProblemPayload(
   const extractProblem = deps.extractProblem ?? extractCleanMath;
   const normalizedProblem = await extractProblem(problem, normalizedContext);
   const historyContext = history.map((item) => item.text).join(" ");
-  const primaryAnalysisText = `${normalizedProblem} ${normalizedContext}`.trim();
-  const analysisText = `${primaryAnalysisText} ${priorAnswer} ${historyContext}`.trim();
-  const currentProblemSkill = inferElementarySkill(primaryAnalysisText || normalizedProblem);
-  const commonSkill =
-    currentProblemSkill !== "elementary homework"
-      ? currentProblemSkill
-      : inferElementarySkill(analysisText || normalizedProblem);
-  const gradeBand = inferElementaryGradeBand(primaryAnalysisText || analysisText || normalizedProblem);
+  const analysisText = `${normalizedProblem} ${normalizedContext} ${priorAnswer} ${historyContext}`.trim();
+  const gradeBand = inferElementaryGradeBand(analysisText || normalizedProblem);
+  const commonSkill = inferElementarySkill(analysisText || normalizedProblem);
   const shouldUseCache = !image && history.length === 0 && !priorAnswer && !followUpIntent;
   const cacheKey = shouldUseCache
     ? buildProblemHash(`${CONTENT_VERSION}::${mode}::${gradeBand}::${normalizedProblem}::${normalizedContext}`)
     : "";
   const cached = shouldUseCache ? getCachedSolution(cacheKey) : null;
-  const apiKeyAvailable = Boolean(getGeminiApiKey());
 
   if (shouldUseCache && cached) {
-    const cachedPayload = cached as Extract<SolveMathPayload, { success: true }>;
-    if (cachedPayload.metadata?.source === "offline" && apiKeyAvailable) {
-    } else {
     return {
-      ...(cachedPayload as Omit<Extract<SolveMathPayload, { success: true }>, "cached">),
+      ...(cached as Omit<Extract<SolveMathPayload, { success: true }>, "cached">),
       cached: true,
     };
-    }
   }
 
   const localSolution = solveArithmeticLocally(normalizedProblem);
@@ -648,10 +620,9 @@ export async function solveMathProblemPayload(
     console.error("Elementary solve completion failed:", error);
   }
 
-  const structuredSolution = generatedText
+  const solution = generatedText
     ? formatStructuredMathResponse(generatedText, mode, problem)
     : buildOfflineSolution(problem, mode, localSolution);
-  const solution = structuredSolution;
   const finalAnswer =
     extractSection(solution, "Final Answer") ||
     extractSection(solution, "Answer") ||
@@ -678,7 +649,7 @@ export async function solveMathProblemPayload(
     },
   };
 
-  if (shouldUseCache && payload.metadata.source === "llm") {
+  if (shouldUseCache) {
     cacheSolution(cacheKey, payload);
   }
   return payload;
