@@ -26,17 +26,17 @@ export function TutorSteps({ steps, markdownComponents }: TutorStepsProps) {
         const isOpen = index <= openStep;
 
         return (
-          <div key={index} className="border border-emerald-100 rounded-xl overflow-hidden bg-white shadow-sm">
+          <div key={index} className="border border-gray-200 rounded-lg overflow-hidden bg-white ">
             <button
               onClick={() => setOpenStep(index)}
               className={cn(
-                "w-full flex items-center justify-between p-4 text-left transition-colors",
-                isOpen ? "bg-emerald-50/50" : "hover:bg-zinc-50"
+                " cursor-pointer mx-auto w-full flex items-center justify-between p-4 text-left transition-colors",
+                isOpen ? "bg-gray-200/50" : "hover:bg-zinc-50"
               )}
               disabled={isOpen}
             >
-              <span className="font-semibold text-emerald-900">{titleLine}</span>
-              {!isOpen && <ChevronDown size={18} className="text-emerald-600" />}
+              <span className="font-semibold text-gray-900">{titleLine}</span>
+              {!isOpen && <ChevronDown size={18} className="text-gray-600" />}
             </button>
 
             <AnimatePresence>
@@ -59,7 +59,7 @@ export function TutorSteps({ steps, markdownComponents }: TutorStepsProps) {
                     {index === openStep && index < steps.length - 1 && (
                       <button
                         onClick={() => setOpenStep(index + 1)}
-                        className="mt-4 px-4 py-2 bg-emerald-100 text-emerald-800 rounded-lg text-sm font-medium hover:bg-emerald-200 transition-colors flex items-center gap-2"
+                        className="mt-4 px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-black/80 transition-colors flex items-center gap-2"
                       >
                         Next Step <ChevronRight size={16} />
                       </button>

@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Atkinson_Hyperlegible_Next, JetBrains_Mono } from "next/font/google";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 
-const inter = Inter({
+const atkinsonHyperlegibleNext = Atkinson_Hyperlegible_Next({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-atkinson-hyperlegible-next",
+  display: "swap",
+  fallback: ["Arial", "sans-serif"],
+  adjustFontFallback: false,
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -26,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+        className={`${atkinsonHyperlegibleNext.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
         {children}
       </body>

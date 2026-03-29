@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { parseDiagnosisResult } from "../../app/api/math/diagnose/route";
 import { clearMathCache } from "../../lib/cache/math-cache";
 import { solveMathProblemPayload } from "../../lib/math/solve-payload";
 
@@ -126,4 +127,75 @@ test("math solve route falls back to offline arithmetic when no model is injecte
   assert.equal(solvedPayload.metadata.source, "offline");
   assert.equal(solvedPayload.metadata.validationPassed, true);
   assert.equal(solvedPayload.solution.includes("20"), true);
+});
+
+test("math solve route supports image-aware follow-ups and keeps solver structure", async () => {
+  clearMathCache();
+  let capturedPrompt = "";
+  let capturedImage = "";
+
+  const payload = await solveMathProblemPayload(
+    {
+      problem: "Solve the homework shown in the uploaded image.",
+      userQuery: "Show another method.",
+      mode: "solver",
+      image: "data:image/png;base64,ZmFrZQ==",
+      priorAnswer: "# Final Answer\n12",
+      followUpIntent: "Show another valid classroom-friendly method for the same problem.",
+      history: [
+        { role: "user", text: "Please solve this image.", image: true },
+        { role: "model", text: "# Question\n36 ÷ 3\n\n# Final Answer\n12", responseType: "solver_response" },
+      ],
+    },
+    {
+      extractProblem: async (input) => input,
+      complete: async ({ prompt, image }) => {
+        capturedPrompt = prompt;
+        capturedImage = image || "";
+        return `# Final Answer
+12
+
+# Solution Steps
+### Step 1
+Group 36 into 3 equal parts.
+$$
+36 \\div 3 = 12
+$$`;
+      },
+    }
+  );
+
+  const solvedPayload = asSolvedPayload(payload);
+  assert.equal(solvedPayload.success, true);
+  assert.equal(capturedImage.startsWith("data:image/png"), true);
+  assert.equal(capturedPrompt.includes("Recent same-mode history"), true);
+  assert.equal(capturedPrompt.includes("Follow-up intent"), true);
+  assert.equal(solvedPayload.solution.includes("# Question"), true);
+  assert.equal(solvedPayload.solution.includes("# Why This Works"), true);
+  assert.equal(solvedPayload.cached, undefined);
+});
+
+test("diagnosis parser returns typed sections for solver-shaped diagnosis output", () => {
+  const result = parseDiagnosisResult(
+    "solver",
+    `# What Looks Right
+- The setup matches the original subtraction sentence.
+
+# What To Double-Check
+- The regrouping may have started one column too late.
+
+# A Better Next Step
+- Try regrouping from the tens place before subtracting the ones.
+
+# What To Say Next
+- Start with: "Let's check the first place where the numbers changed."`
+  );
+
+  assert.equal(result.mode, "solver");
+  assert.equal(result.sections.length, 4);
+  assert.equal(result.sections[0]?.key, "what_looks_right");
+  assert.equal(result.sections[1]?.key, "what_to_double_check");
+  assert.equal(result.sections[2]?.key, "better_next_step");
+  assert.equal(result.sections[3]?.key, "what_to_say_next");
+  assert.equal(result.summary.includes("setup matches"), true);
 });

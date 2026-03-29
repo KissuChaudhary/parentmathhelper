@@ -21,7 +21,14 @@ export type TeachingMeta = {
 
 type SolveRouteDependencies = {
   extractProblem?: typeof extractCleanMath;
-  complete?: (args: { systemInstruction: string; prompt: string }) => Promise<string>;
+  complete?: (args: { systemInstruction: string; prompt: string; image?: string }) => Promise<string>;
+};
+
+export type SolveHistoryItem = {
+  role: "user" | "model";
+  text: string;
+  responseType?: string;
+  image?: boolean;
 };
 
 type SolveMathPayload =
@@ -74,14 +81,31 @@ function normalizeHeading(text: string, from: string, to: string) {
   return text.replace(new RegExp(`(^|\\n)#\\s*${from}\\s*\\n`, "gi"), `$1# ${to}\n`);
 }
 
-function formatStructuredMathResponse(text: string, mode: SolveMode) {
+function ensureSection(text: string, heading: string, content: string) {
+  if (buildHeadingPattern(heading).test(text)) return text;
+  return `${text}\n\n# ${heading}\n${content}`.trim();
+}
+
+function formatStructuredMathResponse(text: string, mode: SolveMode, problem: string) {
   let normalized = normalizeMultilineText(text)
     .replace(/\n?#\s*Answer\s*\n/gi, "\n# Final Answer\n")
     .replace(/\n?#\s*Solution\s*\n/gi, "\n# Solution Steps\n")
     .replace(/\n?#\s*Explanation\s*\n/gi, "\n# Why This Works\n");
 
   if (mode === "solver") {
+    normalized = ensureSection(normalized, "Question", problem);
+    normalized = ensureSection(normalized, "Final Answer", "I need to double-check the final answer.");
+    normalized = ensureSection(
+      normalized,
+      "Solution Steps",
+      "### Step 1\nUse the most reliable method from the problem and check each operation carefully."
+    );
     normalized = normalizeHeading(normalized, "Why This Works", "Why This Works");
+    normalized = ensureSection(
+      normalized,
+      "Why This Works",
+      "- The method matches the problem type.\n- Checking each step helps avoid classroom-style mistakes."
+    );
     if (!buildHeadingPattern("Common Mistake").test(normalized)) {
       normalized = `${normalized}\n\n# Common Mistake\n- Watch for regrouping, operation choice, or skipped units.`;
     }
@@ -91,6 +115,21 @@ function formatStructuredMathResponse(text: string, mode: SolveMode) {
     normalized = normalizeHeading(normalized, "Teaching Tips?", "How To Explain It");
     normalized = normalizeHeading(normalized, "Solution", "Solution Steps");
     normalized = normalizeHeading(normalized, "Explanation", "How To Explain It");
+    normalized = ensureSection(
+      normalized,
+      "What The Child Needs To Understand",
+      "This problem works best when the child slows down and focuses on the skill the worksheet is practicing."
+    );
+    normalized = ensureSection(
+      normalized,
+      "How To Explain It",
+      "Use one short explanation at a time, then ask your child to say the idea back in their own words."
+    );
+    normalized = ensureSection(
+      normalized,
+      "Solution Steps",
+      "### Step 1\nName the skill first and work through one step at a time.\n$$\n\\text{Start with the first useful move in the problem.}\n$$\n> Teaching Tip: Ask, \"What is this step trying to do?\""
+    );
     if (!buildHeadingPattern("Practice Together").test(normalized)) {
       normalized = `${normalized}\n\n# Practice Together\n- Try one more problem with the same skill using smaller numbers first.\n- Praise the strategy, not just the answer.`;
     }
@@ -100,6 +139,82 @@ function formatStructuredMathResponse(text: string, mode: SolveMode) {
   }
 
   return normalized.replace(/\$\$([\s\S]*?)\$\$/g, (_, block) => `\n$$\n${String(block).trim()}\n$$\n`).replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function summarizeHistory(history: SolveHistoryItem[]) {
+  const recentHistory = history
+    .map((item) => ({
+      role: item.role,
+      responseType: item.responseType,
+      text: normalizeMultilineText(item.text || ""),
+      image: item.image,
+    }))
+    .filter((item) => item.text || item.image)
+    .slice(-6);
+
+  if (recentHistory.length === 0) {
+    return "None";
+  }
+
+  return recentHistory
+    .map((item, index) => {
+      const speaker = item.role === "user" ? "Parent" : "Assistant";
+      const label = item.responseType ? ` (${item.responseType})` : "";
+      const imageNote = item.image ? "\n[Image was attached in this turn.]" : "";
+      return `${index + 1}. ${speaker}${label}\n${item.text || "[No text]"}${imageNote}`;
+    })
+    .join("\n\n");
+}
+
+function buildModeOutputReminder(mode: SolveMode) {
+  if (mode === "solver") {
+    return `Return this exact structure:
+
+# Question
+[Restate the problem clearly]
+
+# Final Answer
+[Short final answer]
+
+# Solution Steps
+### Step 1
+[Short explanation]
+$$
+[Equation or number sentence]
+$$
+
+[Continue as needed]
+
+# Why This Works
+- [2-4 short bullets]
+
+# Common Mistake
+- [1-2 short bullets]`;
+  }
+
+  return `Return this exact structure:
+
+# What The Child Needs To Understand
+[1-2 short paragraphs]
+
+# How To Explain It
+[A short parent-facing script]
+
+# Solution Steps
+### Step 1
+[Short explanation]
+$$
+[Equation or transformation]
+$$
+> Teaching Tip: [One short sentence]
+
+[Continue as needed]
+
+# Common Mistake
+- [1-2 short bullets]
+
+# Practice Together
+- [1-2 short bullets]`;
 }
 
 export function inferElementarySkill(problem: string) {
@@ -327,18 +442,36 @@ function buildCompletionPrompt({
   problem,
   normalizedProblem,
   context,
+  history,
   gradeBand,
   commonSkill,
   localSolution,
+  hasImage,
+  priorAnswer,
+  followUpIntent,
 }: {
   mode: SolveMode;
   problem: string;
   normalizedProblem: string;
   context: string;
+  history: SolveHistoryItem[];
   gradeBand: string;
   commonSkill: string;
   localSolution: LocalArithmeticSolution | null;
+  hasImage: boolean;
+  priorAnswer: string;
+  followUpIntent: string;
 }) {
+  const imageInstruction = hasImage
+    ? "\nIf the worksheet problem or student work is mainly in the image, read from the image first and restate the clearest version you can."
+    : "";
+  const followUpInstruction = followUpIntent
+    ? `\nThis is a follow-up request. Directly satisfy the request: ${followUpIntent}.`
+    : "";
+  const priorAnswerInstruction = priorAnswer
+    ? "\nReuse the earlier answer where helpful, but correct it if needed."
+    : "";
+
   return `Original problem:
 ${problem}
 
@@ -351,24 +484,63 @@ ${gradeBand}
 Likely skill:
 ${commonSkill}
 
-Extra context:
-${context || "None"}
+Current parent request:
+${context || "Solve or explain the homework clearly."}
+
+Follow-up intent:
+${followUpIntent || "None"}
+
+Prior answer to build on:
+${priorAnswer || "None"}
+
+Recent same-mode history:
+${summarizeHistory(history)}
+
+Image attached:
+${hasImage ? "Yes. Use the image as a primary source for the homework and written work." : "No"}
 
 Local validation check:
 ${localSolution ? `Direct arithmetic result: ${localSolution.answerText}` : "No direct arithmetic check available"}
 
 Stay within Grades 3-6 classroom expectations and keep the answer practical for a parent helping at home.
-Prioritize clarity on fractions, long division, decimals, multi-step word problems, area vs perimeter, measurement conversions, and beginning algebra patterns when relevant.`;
+Prioritize clarity on fractions, long division, decimals, multi-step word problems, area vs perimeter, measurement conversions, and beginning algebra patterns when relevant.${imageInstruction}${followUpInstruction}${priorAnswerInstruction}
+
+${buildModeOutputReminder(mode)}`;
 }
 
-async function runModelCompletion({ systemInstruction, prompt }: { systemInstruction: string; prompt: string }) {
+async function runModelCompletion({
+  systemInstruction,
+  prompt,
+  image,
+}: {
+  systemInstruction: string;
+  prompt: string;
+  image?: string;
+}) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return "";
 
   const ai = new GoogleGenAI({ apiKey });
+  const contents =
+    image && image.includes(",")
+      ? [
+          {
+            role: "user" as const,
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  data: image.split(",")[1],
+                  mimeType: image.split(";")[0]?.split(":")[1] || "image/png",
+                },
+              },
+            ],
+          },
+        ]
+      : prompt;
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-lite",
-    contents: prompt,
+    contents,
     config: {
       systemInstruction,
     },
@@ -382,10 +554,18 @@ export async function solveMathProblemPayload(
     problem,
     userQuery,
     mode = "solver",
+    image,
+    history = [],
+    priorAnswer = "",
+    followUpIntent = "",
   }: {
     problem: string;
     userQuery?: string;
     mode?: SolveMode;
+    image?: string;
+    history?: SolveHistoryItem[];
+    priorAnswer?: string;
+    followUpIntent?: string;
   },
   deps: SolveRouteDependencies = {}
 ): Promise<SolveMathPayload> {
@@ -397,14 +577,17 @@ export async function solveMathProblemPayload(
 
   const extractProblem = deps.extractProblem ?? extractCleanMath;
   const normalizedProblem = await extractProblem(problem, normalizedContext);
-  const gradeBand = inferElementaryGradeBand(`${normalizedProblem} ${normalizedContext}`.trim());
-  const commonSkill = inferElementarySkill(normalizedProblem);
-  const cacheKey = buildProblemHash(
-    `${CONTENT_VERSION}::${mode}::${gradeBand}::${normalizedProblem}::${normalizedContext}`
-  );
-  const cached = getCachedSolution(cacheKey);
+  const historyContext = history.map((item) => item.text).join(" ");
+  const analysisText = `${normalizedProblem} ${normalizedContext} ${priorAnswer} ${historyContext}`.trim();
+  const gradeBand = inferElementaryGradeBand(analysisText || normalizedProblem);
+  const commonSkill = inferElementarySkill(analysisText || normalizedProblem);
+  const shouldUseCache = !image && history.length === 0 && !priorAnswer && !followUpIntent;
+  const cacheKey = shouldUseCache
+    ? buildProblemHash(`${CONTENT_VERSION}::${mode}::${gradeBand}::${normalizedProblem}::${normalizedContext}`)
+    : "";
+  const cached = shouldUseCache ? getCachedSolution(cacheKey) : null;
 
-  if (cached) {
+  if (shouldUseCache && cached) {
     return {
       ...(cached as Omit<Extract<SolveMathPayload, { success: true }>, "cached">),
       cached: true,
@@ -423,17 +606,22 @@ export async function solveMathProblemPayload(
         problem,
         normalizedProblem,
         context: normalizedContext,
+        history,
         gradeBand,
         commonSkill,
         localSolution,
+        hasImage: Boolean(image),
+        priorAnswer,
+        followUpIntent,
       }),
+      image,
     });
   } catch (error) {
     console.error("Elementary solve completion failed:", error);
   }
 
   const solution = generatedText
-    ? formatStructuredMathResponse(generatedText, mode)
+    ? formatStructuredMathResponse(generatedText, mode, problem)
     : buildOfflineSolution(problem, mode, localSolution);
   const finalAnswer =
     extractSection(solution, "Final Answer") ||
@@ -461,6 +649,8 @@ export async function solveMathProblemPayload(
     },
   };
 
-  cacheSolution(cacheKey, payload);
+  if (shouldUseCache) {
+    cacheSolution(cacheKey, payload);
+  }
   return payload;
 }

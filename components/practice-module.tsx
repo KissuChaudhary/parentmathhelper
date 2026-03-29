@@ -58,19 +58,19 @@ export function PracticeModule({ originalProblem, onGenerate }: PracticeModulePr
   };
 
   return (
-    <div className="mt-8 border-t border-zinc-100 pt-6">
+    <div className="mt-8 border-t border-zinc-100 pt-6 ">
       {state === "initial" && (
         <button
           onClick={handleGenerate}
-          className="w-full py-4 px-6 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-emerald-700 font-medium flex items-center justify-center gap-2 transition-colors"
+          className="cursor-pointer mx-auto text-center justify-center py-4 px-6 bg-black text-white hover:bg-black/80 border border-black rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors"
         >
           <Target size={20} />
-          🎯 Try a Practice Problem Together
+          Try a Practice Problem Together
         </button>
       )}
 
       {state === "loading" && (
-        <div className="w-full py-8 flex flex-col items-center justify-center gap-3 text-emerald-600 bg-emerald-50/50 rounded-xl border border-emerald-100">
+        <div className="py-8 flex flex-col items-center justify-center gap-3 text-emerald-600 bg-emerald-50/50 rounded-xl border border-emerald-100">
           <Loader2 size={24} className="animate-spin" />
           <span className="text-sm font-medium">Generating a similar problem...</span>
         </div>

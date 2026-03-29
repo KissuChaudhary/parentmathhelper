@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -7,6 +8,7 @@ import {
   ArrowUp, 
   X,
   PenTool,
+  Camera,
   Zap,
   BrainCircuit,
   Brain,
@@ -14,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DrawingCanvas } from "./drawing-canvas";
+import { type DraftImageIntent } from "./chat-types";
 
 interface PromptInputProps {
   input: string;
@@ -21,8 +24,11 @@ interface PromptInputProps {
   onSubmit: () => void;
   isLoading: boolean;
   selectedImage: string | null;
+  selectedImageIntent: DraftImageIntent | null;
   setSelectedImage: (image: string | null) => void;
+  onClearImage: () => void;
   onImageUpload: () => void;
+  onTakePhoto: () => void;
   mode: "solver" | "tutor";
   setMode: (mode: "solver" | "tutor") => void;
   diagnoseEnabled: boolean;
@@ -35,8 +41,11 @@ export function PromptInput({
   onSubmit,
   isLoading,
   selectedImage,
+  selectedImageIntent,
   setSelectedImage,
+  onClearImage,
   onImageUpload,
+  onTakePhoto,
   mode,
   setMode,
   diagnoseEnabled,
@@ -44,9 +53,9 @@ export function PromptInput({
 }: PromptInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const diagnoseInfoRef = useRef<HTMLDivElement>(null);
-  const [isFocused, setIsFocused] = useState(false);
   const [isCanvasOpen, setIsCanvasOpen] = useState(false);
   const [isDiagnoseInfoOpen, setIsDiagnoseInfoOpen] = useState(false);
+  const imageIntentCopy = getImageIntentCopy(selectedImageIntent, mode);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -88,7 +97,7 @@ export function PromptInput({
         onClose={() => setIsCanvasOpen(false)} 
         onSave={(dataUrl) => setSelectedImage(dataUrl)} 
       />
-      <div className="w-full max-w-[960px] mx-auto px-4">
+      <div className="w-full max-w-4xl mx-auto px-4">
         <div className={cn(
           "relative border transition-colors duration-300 rounded-2xl p-[3px]",
           mode === "solver" 
@@ -96,7 +105,7 @@ export function PromptInput({
             : "border-emerald-100 bg-emerald-50/30"
         )}>
           {/* Header Area */}
-          <div className="flex px-3 mb-1 items-center justify-between gap-3 text-zinc-500">
+          <div className="flex px-4 mb-1 items-center justify-between gap-3 text-zinc-500">
             <div className="flex min-w-0 items-center">
              <span className={cn(
                "leading-6 text-[13px] font-medium text-nowrap mr-1",
@@ -176,26 +185,79 @@ export function PromptInput({
           </div>
 
           <div className="relative flex flex-col bg-white rounded-xl border border-[#0000001F] shadow-[0px_4px_16px_0px_#0000000D] overflow-hidden transition-colors duration-300">
+            <AnimatePresence>
+              {diagnoseEnabled && !selectedImage && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="border-b border-zinc-100 bg-zinc-50/80"
+                >
+                  <div className="px-4 py-3">
+                      <p className="text-sm font-medium text-zinc-900">Best with a quick photo of the written work</p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      Choose the fastest capture method first, then add a short note only if needed.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2.5">
+                      <button
+                        type="button"
+                        onClick={onTakePhoto}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800"
+                      >
+                        <Camera size={13} />
+                        Take photo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onImageUpload}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100"
+                      >
+                        <Paperclip size={13} />
+                        Upload work
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsCanvasOpen(true)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100"
+                      >
+                        <PenTool size={13} />
+                        Draw / mark up
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
             
-            {/* Image Preview */}
             <AnimatePresence>
               {selectedImage && (
                 <motion.div 
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  className="px-3 pt-3"
+                  className="px-4 pt-3"
                 >
-                  <div className="relative inline-block w-20 h-20">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img 
-                      src={selectedImage} 
-                      alt="Upload preview" 
-                      className="w-full h-full object-cover rounded-xl border border-zinc-200"
-                    />
+                  <div className="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50/70 p-3">
+                    <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-zinc-200 bg-white">
+                      <Image
+                        src={selectedImage}
+                        alt="Upload preview"
+                        fill
+                        unoptimized
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
+                        {imageIntentCopy.label}
+                      </div>
+                      <p className="mt-2 text-sm font-medium text-zinc-900">{imageIntentCopy.title}</p>
+                      <p className="mt-1 text-xs leading-5 text-zinc-500">{imageIntentCopy.description}</p>
+                    </div>
                     <button 
-                      onClick={() => setSelectedImage(null)}
-                      className="absolute -top-2 -right-2 bg-white border border-zinc-200 rounded-full p-1 hover:bg-zinc-100 text-zinc-500 transition-colors z-10 shadow-sm"
+                      type="button"
+                      onClick={onClearImage}
+                      className="rounded-full border border-zinc-200 bg-white p-1 text-zinc-500 transition-colors hover:bg-zinc-100"
                     >
                       <X size={14} />
                     </button>
@@ -204,15 +266,12 @@ export function PromptInput({
               )}
             </AnimatePresence>
 
-            {/* Textarea */}
-            <div className="relative py-3 px-4">  
+            <div className="relative px-4 py-3.5">  
               <textarea 
                 ref={textareaRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
                 placeholder={
                   diagnoseEnabled
                     ? "Add a photo, upload, draw on the work, or type what you want me to check..."
@@ -220,17 +279,24 @@ export function PromptInput({
                       ? "Paste a fraction, long division, decimal, or word problem..."
                       : "Ask how to explain the homework method to your child..."
                 }
-                className="w-full max-h-[216px] text-sm bg-transparent resize-none outline-none placeholder:text-zinc-400"
+                className="w-full max-h-[216px] bg-transparent text-[15px] md:text-base resize-none outline-none placeholder:text-zinc-400"
                 style={{ height: "40px" }}
                 rows={1}
               />
             </div>
 
-            {/* Bottom Bar */}
-            <div className="flex justify-between items-center p-3 pt-0 max-w-full">
-              {/* Left Actions */}
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between max-w-full px-4 pb-3 pt-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <button 
+                  type="button"
+                  onClick={onTakePhoto}
+                  className="p-2 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"
+                  title="Take photo"
+                >
+                  <Camera size={18} />
+                </button>
+                <button 
+                  type="button"
                   onClick={onImageUpload}
                   className="p-2 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"
                   title="Upload image"
@@ -238,6 +304,7 @@ export function PromptInput({
                   <Paperclip size={18} />
                 </button>
                 <button 
+                  type="button"
                   onClick={() => setIsCanvasOpen(true)}
                   className="p-2 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"
                   title="Open canvas"
@@ -246,9 +313,7 @@ export function PromptInput({
                 </button>
               </div>
 
-              {/* Right Actions */}
-              <div className="flex items-center gap-3">
-                {/* Mode Switcher */}
+              <div className="flex items-center gap-2 sm:gap-3">
                 <div className="bg-zinc-100 p-1 rounded-lg border border-zinc-200 flex relative">
                   <div 
                     className={cn(
@@ -260,7 +325,7 @@ export function PromptInput({
                     onClick={() => setMode("solver")}
                     disabled={isLoading || diagnoseEnabled}
                     className={cn(
-                      "relative z-10 px-3 py-1 text-xs font-medium transition-colors duration-200 flex items-center gap-1.5 disabled:opacity-50",
+                      "relative z-10 px-2.5 py-1 text-xs font-medium transition-colors duration-200 flex items-center gap-1.5 disabled:opacity-50 sm:px-3",
                       mode === "solver"
                         ? "text-zinc-900"
                         : diagnoseEnabled
@@ -276,7 +341,7 @@ export function PromptInput({
                     onClick={() => setMode("tutor")}
                     disabled={isLoading || diagnoseEnabled}
                     className={cn(
-                      "relative z-10 px-3 py-1 text-xs font-medium transition-colors duration-200 flex items-center gap-1.5 disabled:opacity-50",
+                      "relative z-10 px-2.5 py-1 text-xs font-medium transition-colors duration-200 flex items-center gap-1.5 disabled:opacity-50 sm:px-3",
                       mode === "tutor"
                         ? "text-emerald-700"
                         : diagnoseEnabled
@@ -289,8 +354,8 @@ export function PromptInput({
                   </button>
                 </div>
 
-                {/* Submit Button */}
                 <button 
+                  type="button"
                   onClick={onSubmit}
                   disabled={isLoading || (!input.trim() && !selectedImage)}
                   className={cn(
@@ -315,4 +380,28 @@ export function PromptInput({
       </div>
     </>
   );
+}
+
+function getImageIntentCopy(intent: DraftImageIntent | null, mode: "solver" | "tutor") {
+  if (intent === "diagnose_from_image") {
+    return {
+      label: "Diagnose from image",
+      title: mode === "solver" ? "Checking where the math may have gone off" : "Checking what the child may have misunderstood",
+      description: "I’ll review the written work in the current mode and keep the feedback calm, specific, and parent-friendly.",
+    };
+  }
+
+  if (intent === "teach_from_image") {
+    return {
+      label: "Teach from image",
+      title: "Turning the worksheet into a parent coaching script",
+      description: "I’ll explain the method shown in the image and help you say it in simpler language at the table.",
+    };
+  }
+
+  return {
+    label: "Solve from image",
+    title: "Solving the homework shown in the image",
+    description: "I’ll read the worksheet problem from the image and return school-friendly steps for the current homework.",
+  };
 }

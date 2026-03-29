@@ -3,8 +3,8 @@ import { solveMathProblemPayload as solveMathProblemPayloadCore } from "@/lib/ma
 
 export async function POST(req: Request) {
   try {
-    const { problem, userQuery, mode } = await req.json();
-    const payload = await solveMathProblemPayloadCore({ problem, userQuery, mode });
+    const { problem, userQuery, mode, image, history, priorAnswer, followUpIntent } = await req.json();
+    const payload = await solveMathProblemPayloadCore({ problem, userQuery, mode, image, history, priorAnswer, followUpIntent });
     if ("error" in payload && typeof payload.error === "string") {
       return NextResponse.json(payload, { status: 400 });
     }

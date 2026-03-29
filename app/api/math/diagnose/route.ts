@@ -1,6 +1,46 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
-import { type ChatMode } from "@/components/chat-types";
+import { type ChatMode, type DiagnosisResult, type DiagnosisSectionKey } from "@/components/chat-types";
+
+function getDiagnosisSectionKey(title: string): DiagnosisSectionKey {
+  const normalized = title.trim().toLowerCase();
+  if (normalized.includes("looks right")) return "what_looks_right";
+  if (normalized.includes("double-check")) return "what_to_double_check";
+  if (normalized.includes("check next")) return "what_to_check_next";
+  if (normalized.includes("better next step")) return "better_next_step";
+  if (normalized.includes("say next")) return "what_to_say_next";
+  if (normalized.includes("quick check")) return "quick_check";
+  if (normalized.includes("original problem")) return "original_problem";
+  return "other";
+}
+
+export function parseDiagnosisResult(mode: ChatMode, diagnosis: string): DiagnosisResult {
+  const sections = [...diagnosis.matchAll(/(?:^|\n)#\s*([^\n]+)\n([\s\S]*?)(?=\n#\s+[^\n]+\n|$)/g)]
+    .map((match) => ({
+      key: getDiagnosisSectionKey(match[1] || ""),
+      title: (match[1] || "").trim(),
+      content: (match[2] || "").trim(),
+    }))
+    .filter((section) => section.title && section.content);
+
+  const summary =
+    sections[0]?.content.split("\n").find((line) => line.trim())?.replace(/^[-*]\s*/, "").trim() ||
+    "A calm review of the child’s work and the next best step.";
+
+  return {
+    mode,
+    summary,
+    sections,
+  };
+}
+
+function buildDiagnosisResponse(mode: ChatMode, diagnosis: string) {
+  return {
+    success: true,
+    diagnosis,
+    result: parseDiagnosisResult(mode, diagnosis),
+  };
+}
 
 function buildDiagnosisFallback(mode: ChatMode, originalProblem: string, note: string) {
   if (mode === "solver") {
@@ -124,10 +164,8 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({
-        success: true,
-        diagnosis: buildDiagnosisFallback(mode, normalizedProblem, note || ""),
-      });
+      const diagnosis = buildDiagnosisFallback(mode, normalizedProblem, note || "");
+      return NextResponse.json(buildDiagnosisResponse(mode, diagnosis));
     }
 
     const ai = new GoogleGenAI({ apiKey });
@@ -163,10 +201,8 @@ export async function POST(req: Request) {
       ],
     });
 
-    return NextResponse.json({
-      success: true,
-      diagnosis: response.text?.trim() || buildDiagnosisFallback(mode, normalizedProblem, note || ""),
-    });
+    const diagnosis = response.text?.trim() || buildDiagnosisFallback(mode, normalizedProblem, note || "");
+    return NextResponse.json(buildDiagnosisResponse(mode, diagnosis));
   } catch (error: any) {
     console.error("Diagnosis route error:", error);
     return NextResponse.json(
