@@ -16,7 +16,7 @@ export function MathVisual({ spec }: { spec: MathVisualSpec }) {
 
 function FractionDiagram({ spec }: { spec: FractionDiagramSpec }) {
   return (
-    <div className="my-5 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+    <div className="my-5 overflow-hidden rounded-2xl border border-zinc-200 bg-white">
       {spec.title && <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-800">{spec.title}</div>}
       <div className="px-4 py-5">
         <div className="mx-auto flex max-w-md justify-center">
@@ -83,15 +83,17 @@ function FractionCircle({ spec }: { spec: FractionDiagramSpec }) {
 function GeometryDiagram({ spec }: { spec: GeometryDiagramSpec }) {
   const width = spec.width ?? 320;
   const height = spec.height ?? 220;
-  const pointsById = new Map(spec.points.map((point) => [point.id, point]));
+  const normalizedPoints = normalizeGeometryPoints(spec.points, width, height);
+  const pointsById = new Map(normalizedPoints.map((point) => [point.id, point]));
+  const arrowMarkerId = `math-visual-arrow-${normalizedPoints.map((point) => point.id).join("-") || "shape"}`;
 
   return (
-    <div className="my-5 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+    <div className="my-5 overflow-hidden rounded-2xl border border-zinc-200 bg-white ">
       {spec.title && <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-800">{spec.title}</div>}
       <div className="px-4 py-5">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
           <defs>
-            <marker id="math-visual-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+            <marker id={arrowMarkerId} markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
               <path d="M 0 0 L 10 5 L 0 10 z" fill="#27272a" />
             </marker>
           </defs>
@@ -130,14 +132,14 @@ function GeometryDiagram({ spec }: { spec: GeometryDiagramSpec }) {
                 y2={to.y}
                 stroke="#1f2937"
                 strokeWidth="2.5"
-                markerEnd="url(#math-visual-arrow)"
+                markerEnd={`url(#${arrowMarkerId})`}
               />
             );
           })}
 
           {spec.highlightAngle && <AngleHighlight angle={spec.highlightAngle} pointsById={pointsById} />}
 
-          {spec.points.map((point) => (
+          {normalizedPoints.map((point) => (
             <g key={point.id}>
               <circle cx={point.x} cy={point.y} r="4.5" fill="#facc15" stroke="#1f2937" strokeWidth="1.5" />
               <text x={point.x + 8} y={point.y - 8} fontSize="14" fontWeight="700" fill="#111827">
@@ -149,6 +151,28 @@ function GeometryDiagram({ spec }: { spec: GeometryDiagramSpec }) {
       </div>
     </div>
   );
+}
+
+function normalizeGeometryPoints(points: GeometryDiagramSpec["points"], width: number, height: number) {
+  if (points.length === 0) return points;
+
+  const xs = points.map((point) => point.x);
+  const ys = points.map((point) => point.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const xRange = Math.max(maxX - minX, 1);
+  const yRange = Math.max(maxY - minY, 1);
+  const padding = 30;
+  const availableWidth = Math.max(width - padding * 2, 1);
+  const availableHeight = Math.max(height - padding * 2, 1);
+
+  return points.map((point) => ({
+    ...point,
+    x: padding + ((point.x - minX) / xRange) * availableWidth,
+    y: padding + ((point.y - minY) / yRange) * availableHeight,
+  }));
 }
 
 function AngleHighlight({
@@ -204,7 +228,7 @@ function BoxPlotDiagram({ spec }: { spec: BoxPlotDiagramSpec }) {
   const maxX = scale(spec.maximum);
 
   return (
-    <div className="my-5 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+    <div className="my-5 overflow-hidden rounded-2xl border border-zinc-200 bg-white">
       {spec.title && <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-800">{spec.title}</div>}
       <div className="px-4 py-5">
         <svg viewBox="0 0 360 170" className="w-full">

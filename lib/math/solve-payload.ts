@@ -1,14 +1,8 @@
+import { config as loadDotEnv } from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 import { evaluate } from "mathjs";
 import { buildProblemHash, cacheSolution, getCachedSolution } from "@/lib/cache/math-cache";
 import { extractCleanMath } from "@/lib/math/llm-extractor";
-import {
-  createBoxPlotDiagramTool,
-  createFractionDiagramTool,
-  createGeometryDiagramTool,
-  parseMathVisualSpec,
-  type MathVisualSpec,
-} from "@/lib/math-visuals";
 import { mathSolverSystemPrompt } from "@/lib/prompts/math-solver-system";
 import { mathTutorSystemPrompt } from "@/lib/prompts/math-user-guide";
 
@@ -58,6 +52,8 @@ type LocalArithmeticSolution = {
   answerValue: number;
   answerText: string;
 };
+
+let hasLoadedLocalEnv = false;
 
 const CONTENT_VERSION = "grades-3-6-v1";
 
@@ -223,53 +219,18 @@ $$
 - [1-2 short bullets]`;
 }
 
-function formatMathVisualBlock(spec: MathVisualSpec) {
-  return `# Visual Model
-\`\`\`math-visual
-${JSON.stringify(spec, null, 2)}
-\`\`\``;
-}
-
-function appendMathVisualBlocks(text: string, visuals: MathVisualSpec[]) {
-  if (visuals.length === 0) return text;
-  if (/```math-visual/i.test(text)) return text;
-  return `${text.trim()}\n\n${visuals.map((visual) => formatMathVisualBlock(visual)).join("\n\n")}`.trim();
-}
-
-function normalizeVisualToolArgs(name: string, args: unknown) {
-  if (!args || typeof args !== "object") return null;
-  const normalized = { ...(args as Record<string, unknown>) };
-
-  if (name === createFractionDiagramTool.name && !("kind" in normalized)) {
-    normalized.kind = "fraction-diagram";
-  }
-  if (name === createGeometryDiagramTool.name && !("kind" in normalized)) {
-    normalized.kind = "geometry-diagram";
-  }
-  if (name === createBoxPlotDiagramTool.name && !("kind" in normalized)) {
-    normalized.kind = "box-plot-diagram";
+function getGeminiApiKey() {
+  if (typeof process.env.GEMINI_API_KEY === "string" && process.env.GEMINI_API_KEY.trim()) {
+    return process.env.GEMINI_API_KEY.trim();
   }
 
-  return parseMathVisualSpec(normalized);
-}
-
-function selectVisualTools(problemText: string) {
-  const text = problemText.toLowerCase();
-  const tools = [];
-
-  if (/\b(fraction|fractions|numerator|denominator|equivalent|shade|shaded|equal parts|circle model|bar model)\b|\/\d/.test(text)) {
-    tools.push(createFractionDiagramTool);
+  if (!hasLoadedLocalEnv) {
+    loadDotEnv({ path: ".env.local" });
+    loadDotEnv({ path: ".env" });
+    hasLoadedLocalEnv = true;
   }
 
-  if (/\b(angle|angles|vertex|vertices|ray|rays|line segment|segment|triangle|quadrilateral|polygon|shape|interior angle|arms)\b/.test(text)) {
-    tools.push(createGeometryDiagramTool);
-  }
-
-  if (/\b(box plot|quartile|quartiles|median|minimum|maximum|five-number summary|interquartile)\b/.test(text)) {
-    tools.push(createBoxPlotDiagramTool);
-  }
-
-  return tools;
+  return typeof process.env.GEMINI_API_KEY === "string" ? process.env.GEMINI_API_KEY.trim() : "";
 }
 
 export function inferElementarySkill(problem: string) {
@@ -562,19 +523,6 @@ ${localSolution ? `Direct arithmetic result: ${localSolution.answerText}` : "No 
 Stay within Grades 3-6 classroom expectations and keep the answer practical for a parent helping at home.
 Prioritize clarity on fractions, long division, decimals, multi-step word problems, area vs perimeter, measurement conversions, and beginning algebra patterns when relevant.${imageInstruction}${followUpInstruction}${priorAnswerInstruction}
 
-If a clean visual model would meaningfully help a parent explain the problem, call one appropriate diagram tool.
-Only call a diagram tool when it clearly improves understanding, such as:
-- shaded fraction bars or circles for part-whole fraction questions
-- labeled angle or polygon diagrams for geometry vocabulary and angle naming
-- box plots for quartiles, median, minimum, and maximum
-
-If a tool is used, include one extra section at the end:
-
-# Visual Model
-\`\`\`math-visual
-[exact JSON tool result]
-\`\`\`
-
 ${buildModeOutputReminder(mode)}`;
 }
 
@@ -587,88 +535,36 @@ async function runModelCompletion({
   prompt: string;
   image?: string;
 }) {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = getGeminiApiKey();
   if (!apiKey) return "";
 
   const ai = new GoogleGenAI({ apiKey });
-  const contents: Array<{
-    role: "user" | "model";
-    parts: Array<Record<string, unknown>>;
-  }> = [
-    {
-      role: "user",
-      parts: [
-        { text: prompt },
-        ...(image && image.includes(",")
-          ? [
+  const contents =
+    image && image.includes(",")
+      ? [
+          {
+            role: "user" as const,
+            parts: [
+              { text: prompt },
               {
                 inlineData: {
                   data: image.split(",")[1],
                   mimeType: image.split(";")[0]?.split(":")[1] || "image/png",
                 },
               },
-            ]
-          : []),
-      ],
-    },
-  ];
-  const visualTools = selectVisualTools(prompt);
-  const visuals: MathVisualSpec[] = [];
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents,
-      config: {
-        systemInstruction,
-        tools: visualTools.length > 0 ? [{ functionDeclarations: visualTools }] : undefined,
-      },
-    });
-
-    if (!response.functionCalls || response.functionCalls.length === 0) {
-      return appendMathVisualBlocks(response.text?.trim() || "", visuals);
-    }
-
-    const modelContent = response.candidates?.[0]?.content;
-    if (modelContent) {
-      contents.push({
-        role: modelContent.role === "model" ? "model" : "user",
-        parts: (modelContent.parts || []) as Array<Record<string, unknown>>,
-      });
-    }
-
-    contents.push({
-      role: "user",
-      parts: response.functionCalls.map((functionCall) => {
-        const functionName = typeof functionCall.name === "string" ? functionCall.name : "";
-        const visualSpec = functionName ? normalizeVisualToolArgs(functionName, functionCall.args) : null;
-        if (visualSpec) {
-          visuals.push(visualSpec);
-          return {
-            functionResponse: {
-              name: functionName,
-              id: functionCall.id,
-              response: {
-                result: visualSpec,
-              },
-            },
-          };
-        }
-
-        return {
-          functionResponse: {
-            name: functionName || "unknown_visual_tool",
-            id: functionCall.id,
-            response: {
-              error: "The requested visual did not match the supported schema.",
-            },
+            ],
           },
-        };
-      }),
-    });
-  }
+        ]
+      : prompt;
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents,
+    config: {
+      systemInstruction,
+    },
+  });
 
-  return "";
+  return response.text?.trim() || "";
 }
 
 export async function solveMathProblemPayload(
@@ -700,20 +596,30 @@ export async function solveMathProblemPayload(
   const extractProblem = deps.extractProblem ?? extractCleanMath;
   const normalizedProblem = await extractProblem(problem, normalizedContext);
   const historyContext = history.map((item) => item.text).join(" ");
-  const analysisText = `${normalizedProblem} ${normalizedContext} ${priorAnswer} ${historyContext}`.trim();
-  const gradeBand = inferElementaryGradeBand(analysisText || normalizedProblem);
-  const commonSkill = inferElementarySkill(analysisText || normalizedProblem);
+  const primaryAnalysisText = `${normalizedProblem} ${normalizedContext}`.trim();
+  const analysisText = `${primaryAnalysisText} ${priorAnswer} ${historyContext}`.trim();
+  const currentProblemSkill = inferElementarySkill(primaryAnalysisText || normalizedProblem);
+  const commonSkill =
+    currentProblemSkill !== "elementary homework"
+      ? currentProblemSkill
+      : inferElementarySkill(analysisText || normalizedProblem);
+  const gradeBand = inferElementaryGradeBand(primaryAnalysisText || analysisText || normalizedProblem);
   const shouldUseCache = !image && history.length === 0 && !priorAnswer && !followUpIntent;
   const cacheKey = shouldUseCache
     ? buildProblemHash(`${CONTENT_VERSION}::${mode}::${gradeBand}::${normalizedProblem}::${normalizedContext}`)
     : "";
   const cached = shouldUseCache ? getCachedSolution(cacheKey) : null;
+  const apiKeyAvailable = Boolean(getGeminiApiKey());
 
   if (shouldUseCache && cached) {
+    const cachedPayload = cached as Extract<SolveMathPayload, { success: true }>;
+    if (cachedPayload.metadata?.source === "offline" && apiKeyAvailable) {
+    } else {
     return {
-      ...(cached as Omit<Extract<SolveMathPayload, { success: true }>, "cached">),
+      ...(cachedPayload as Omit<Extract<SolveMathPayload, { success: true }>, "cached">),
       cached: true,
     };
+    }
   }
 
   const localSolution = solveArithmeticLocally(normalizedProblem);
@@ -742,9 +648,10 @@ export async function solveMathProblemPayload(
     console.error("Elementary solve completion failed:", error);
   }
 
-  const solution = generatedText
+  const structuredSolution = generatedText
     ? formatStructuredMathResponse(generatedText, mode, problem)
     : buildOfflineSolution(problem, mode, localSolution);
+  const solution = structuredSolution;
   const finalAnswer =
     extractSection(solution, "Final Answer") ||
     extractSection(solution, "Answer") ||
@@ -771,7 +678,7 @@ export async function solveMathProblemPayload(
     },
   };
 
-  if (shouldUseCache) {
+  if (shouldUseCache && payload.metadata.source === "llm") {
     cacheSolution(cacheKey, payload);
   }
   return payload;

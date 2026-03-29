@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { parseDiagnosisResult } from "../../app/api/math/diagnose/route";
 import { clearMathCache } from "../../lib/cache/math-cache";
-import { createBoxPlotDiagramTool, createFractionDiagramTool, createGeometryDiagramTool, parseMathVisualSpec } from "../../lib/math-visuals";
 import { inferElementarySkill, solveMathProblemPayload } from "../../lib/math/solve-payload";
 
 process.env.GEMINI_API_KEY = "";
@@ -201,54 +200,50 @@ test("diagnosis parser returns typed sections for solver-shaped diagnosis output
   assert.equal(result.summary.includes("setup matches"), true);
 });
 
-test("math visual parser accepts supported fraction, geometry, and box plot specs", () => {
-  const fraction = parseMathVisualSpec({
-    kind: "fraction-diagram",
-    variant: "bar",
-    parts: 8,
-    filledParts: 3,
-  });
-  const geometry = parseMathVisualSpec({
-    kind: "geometry-diagram",
-    title: "Angle LMP",
-    points: [
-      { id: "M", x: 40, y: 140 },
-      { id: "L", x: 190, y: 140 },
-      { id: "P", x: 140, y: 50 },
-    ],
-    rays: [
-      { from: "M", to: "L" },
-      { from: "M", to: "P" },
-    ],
-    highlightAngle: {
-      vertex: "M",
-      from: "L",
-      to: "P",
-      label: "∠LMP",
-    },
-  });
-  const boxPlot = parseMathVisualSpec({
-    kind: "box-plot-diagram",
-    minimum: 45,
-    lowerQuartile: 72,
-    median: 83,
-    upperQuartile: 90,
-    maximum: 95,
-  });
-
-  assert.equal(fraction?.kind, "fraction-diagram");
-  assert.equal(geometry?.kind, "geometry-diagram");
-  assert.equal(boxPlot?.kind, "box-plot-diagram");
-  assert.equal(parseMathVisualSpec({ kind: "fraction-diagram", parts: 4, filledParts: 6, variant: "bar" }), null);
-});
-
-test("diagram tool declarations expose production-ready Gemini function names", () => {
-  assert.equal(createFractionDiagramTool.name, "create_fraction_diagram");
-  assert.equal(createGeometryDiagramTool.name, "create_geometry_diagram");
-  assert.equal(createBoxPlotDiagramTool.name, "create_box_plot_diagram");
-});
-
 test("elementary skill inference recognizes geometry and data handling prompts", () => {
   assert.equal(inferElementarySkill("Name the vertex and arms of angle LMP."), "geometry");
   assert.equal(inferElementarySkill("Use the box plot to identify the median and quartiles."), "data handling");
+});
+
+test("solve payload does not keep a cached offline fallback once llm output becomes available", async () => {
+  clearMathCache();
+
+  const offlinePayload = await solveMathProblemPayload(
+    {
+      problem: "Create a box plot for 45, 72, 83, 90, 95 and explain it.",
+      mode: "solver",
+    },
+    {
+      extractProblem: async (input) => input,
+      complete: async () => "",
+    }
+  );
+
+  const recoveredPayload = await solveMathProblemPayload(
+    {
+      problem: "Create a box plot for 45, 72, 83, 90, 95 and explain it.",
+      mode: "solver",
+    },
+    {
+      extractProblem: async (input) => input,
+      complete: async () => `# Question
+Create a box plot for 45, 72, 83, 90, 95 and explain it.
+
+# Final Answer
+The box plot shows the spread of the data.
+
+# Solution Steps
+### Step 1
+Order the numbers and identify the five-number summary.
+
+# Why This Works
+- Box plots summarize spread.
+
+# Common Mistake
+- Do not skip ordering the data.`,
+    }
+  );
+
+  assert.equal(asSolvedPayload(offlinePayload).metadata.source, "offline");
+  assert.equal(asSolvedPayload(recoveredPayload).metadata.source, "llm");
 });
