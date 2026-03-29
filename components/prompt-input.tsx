@@ -56,10 +56,8 @@ export function PromptInput({
   const [isFocused, setIsFocused] = useState(false);
   const [isCanvasOpen, setIsCanvasOpen] = useState(false);
   const [isDiagnoseInfoOpen, setIsDiagnoseInfoOpen] = useState(false);
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const imageIntentCopy = getImageIntentCopy(selectedImageIntent, mode);
   const placeholderPhrases = getAnimatedPlaceholderPhrases(mode, diagnoseEnabled);
-  const activePlaceholder = placeholderPhrases[placeholderIndex % placeholderPhrases.length] || "";
   const showAnimatedPlaceholder = !isFocused && !input.trim();
 
   // Auto-resize textarea
@@ -87,20 +85,6 @@ export function PromptInput({
       document.removeEventListener("touchstart", handlePointerDown);
     };
   }, []);
-
-  useEffect(() => {
-    setPlaceholderIndex(0);
-  }, [mode, diagnoseEnabled]);
-
-  useEffect(() => {
-    if (!showAnimatedPlaceholder || placeholderPhrases.length <= 1) return;
-
-    const timeoutId = window.setTimeout(() => {
-      setPlaceholderIndex((current) => (current + 1) % placeholderPhrases.length);
-    }, 3200);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [placeholderIndex, placeholderPhrases, showAnimatedPlaceholder]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -288,9 +272,11 @@ export function PromptInput({
             <div className="relative px-4 py-3.5">  
               {showAnimatedPlaceholder && (
                 <div className="pointer-events-none absolute inset-x-4 top-1/2 -translate-y-1/2 overflow-hidden text-[15px] text-zinc-400 md:text-base">
-                  <AnimatePresence mode="wait" initial={false}>
-                    <WavePlaceholderPhrase key={`${mode}-${diagnoseEnabled}-${activePlaceholder}`} phrase={activePlaceholder} />
-                  </AnimatePresence>
+                  <AnimatedPlaceholderText
+                    key={`${mode}-${diagnoseEnabled}`}
+                    phrases={placeholderPhrases}
+                    isVisible={showAnimatedPlaceholder}
+                  />
                 </div>
               )}
               <textarea 
@@ -434,6 +420,33 @@ function getAnimatedPlaceholderPhrases(mode: "solver" | "tutor", diagnoseEnabled
       ];
 }
 
+function AnimatedPlaceholderText({
+  phrases,
+  isVisible,
+}: {
+  phrases: string[];
+  isVisible: boolean;
+}) {
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const activePlaceholder = phrases[placeholderIndex % phrases.length] || "";
+
+  useEffect(() => {
+    if (!isVisible || phrases.length <= 1) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setPlaceholderIndex((current) => (current + 1) % phrases.length);
+    }, 3200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [placeholderIndex, phrases, isVisible]);
+
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <WavePlaceholderPhrase key={activePlaceholder} phrase={activePlaceholder} />
+    </AnimatePresence>
+  );
+}
+
 function WavePlaceholderPhrase({ phrase }: { phrase: string }) {
   return (
     <motion.span
@@ -456,31 +469,51 @@ function WavePlaceholderPhrase({ phrase }: { phrase: string }) {
       }}
     >
       {phrase.split("").map((character, index) => (
+        (() => {
+          const glyph = character === " " ? "\u00A0" : character;
+
+          return (
         <motion.span
           key={`${phrase}-${index}-${character}`}
-          className="inline-block"
+          className="relative inline-block will-change-transform"
+          style={{ transformOrigin: "50% 100%" }}
           variants={{
             hidden: {
               opacity: 0,
-              y: 16,
-              rotateX: -18,
-              filter: "blur(4px)",
+              y: 18,
+              rotateX: -22,
+              scale: 0.985,
             },
             visible: {
               opacity: 1,
               y: 0,
               rotateX: 0,
-              filter: "blur(0px)",
               transition: {
-                duration: 0.46,
-                ease: [0.22, 1, 0.36, 1],
+                y: {
+                  type: "spring",
+                  stiffness: 360,
+                  damping: 26,
+                  mass: 0.78,
+                },
+                opacity: {
+                  duration: 0.34,
+                  ease: [0.22, 1, 0.36, 1],
+                },
+                rotateX: {
+                  duration: 0.42,
+                  ease: [0.22, 1, 0.36, 1],
+                },
+                scale: {
+                  duration: 0.42,
+                  ease: [0.22, 1, 0.36, 1],
+                },
               },
             },
             exit: {
               opacity: 0,
               y: -14,
               rotateX: 14,
-              filter: "blur(3px)",
+              scale: 0.99,
               transition: {
                 duration: 0.28,
                 ease: [0.4, 0, 1, 1],
@@ -488,8 +521,53 @@ function WavePlaceholderPhrase({ phrase }: { phrase: string }) {
             },
           }}
         >
-          {character === " " ? "\u00A0" : character}
+          <motion.span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 text-zinc-300/70 blur-[4px]"
+            variants={{
+              hidden: {
+                opacity: 0,
+                y: 20,
+                scale: 1.05,
+              },
+              visible: {
+                opacity: 0.4,
+                y: 4,
+                scale: 1,
+                transition: {
+                  opacity: {
+                    duration: 0.42,
+                    ease: [0.22, 1, 0.36, 1],
+                  },
+                  y: {
+                    type: "spring",
+                    stiffness: 240,
+                    damping: 28,
+                    mass: 0.9,
+                  },
+                  scale: {
+                    duration: 0.42,
+                    ease: [0.22, 1, 0.36, 1],
+                  },
+                },
+              },
+              exit: {
+                opacity: 0,
+                y: -8,
+                scale: 0.98,
+                transition: {
+                  duration: 0.24,
+                  ease: [0.4, 0, 1, 1],
+                },
+              },
+            }}
+          >
+            {glyph}
+          </motion.span>
+          <span className="relative block">{glyph}</span>
         </motion.span>
+          );
+        })()
       ))}
     </motion.span>
   );
