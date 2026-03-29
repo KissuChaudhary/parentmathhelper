@@ -19,31 +19,6 @@ const followUpActionConfig: Record<
   Exclude<MessageActionType, "create_similar_practice">,
   { label: string; userText: string; followUpIntent: string }
 > = {
-  solver_another_method: {
-    label: "Show another method",
-    userText: "Show another method.",
-    followUpIntent: "Show another valid classroom-friendly method for the same problem.",
-  },
-  solver_verify_answer: {
-    label: "Verify the final answer",
-    userText: "Verify the final answer.",
-    followUpIntent: "Check the final answer against the original problem and correct anything that is off.",
-  },
-  solver_break_down_step: {
-    label: "Break down one step",
-    userText: "Break down one step more clearly.",
-    followUpIntent: "Break down the trickiest step into smaller child-friendly moves.",
-  },
-  tutor_another_analogy: {
-    label: "Give another analogy",
-    userText: "Give another analogy.",
-    followUpIntent: "Give a different analogy the parent can use to explain the concept.",
-  },
-  tutor_shorten_explanation: {
-    label: "Shorten the script",
-    userText: "Shorten the explanation.",
-    followUpIntent: "Rewrite the teaching explanation as a shorter parent script for a live homework moment.",
-  },
   tutor_adjust_language: {
     label: "Use simpler language",
     userText: "Use simpler language.",
@@ -59,14 +34,8 @@ const followUpActionConfig: Record<
 function buildMessageActions(targetMode: ChatMode, canCreatePractice: boolean) {
   const followUps =
     targetMode === "solver"
-      ? [
-          { type: "solver_another_method" as const, label: followUpActionConfig.solver_another_method.label },
-          { type: "solver_verify_answer" as const, label: followUpActionConfig.solver_verify_answer.label },
-          { type: "solver_break_down_step" as const, label: followUpActionConfig.solver_break_down_step.label },
-        ]
+      ? []
       : [
-          { type: "tutor_another_analogy" as const, label: followUpActionConfig.tutor_another_analogy.label },
-          { type: "tutor_shorten_explanation" as const, label: followUpActionConfig.tutor_shorten_explanation.label },
           { type: "tutor_adjust_language" as const, label: followUpActionConfig.tutor_adjust_language.label },
           { type: "tutor_help_stuck_step" as const, label: followUpActionConfig.tutor_help_stuck_step.label },
         ];

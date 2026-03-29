@@ -8,11 +8,6 @@ export type MessageResponseType =
   | "system_notice";
 export type MessageActionType =
   | "create_similar_practice"
-  | "solver_another_method"
-  | "solver_verify_answer"
-  | "solver_break_down_step"
-  | "tutor_another_analogy"
-  | "tutor_shorten_explanation"
   | "tutor_adjust_language"
   | "tutor_help_stuck_step";
 
