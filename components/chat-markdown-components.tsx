@@ -4,6 +4,8 @@ import { ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MathGraph } from "@/components/math-graph";
 import { DataChart } from "@/components/data-chart";
+import { MathVisual } from "@/components/math-visual";
+import { parseMathVisualSpec } from "@/lib/math-visuals";
 
 export function getMarkdownComponents() {
   return {
@@ -41,12 +43,15 @@ export function getMarkdownComponents() {
         const text = String(children).replace(/\n$/, "");
         let isGraph = false;
         let isChart = false;
+        let isVisual = false;
         let data = null;
 
         if (match && match[1] === "math-graph") {
           isGraph = true;
         } else if (match && match[1] === "data-chart") {
           isChart = true;
+        } else if (match && match[1] === "math-visual") {
+          isVisual = true;
         } else {
           try {
             const parsed = JSON.parse(text);
@@ -57,6 +62,12 @@ export function getMarkdownComponents() {
               } else if ("type" in parsed && "data" in parsed && "xKey" in parsed && "yKeys" in parsed) {
                 isChart = true;
                 data = parsed;
+              } else {
+                const visualSpec = parseMathVisualSpec(parsed);
+                if (visualSpec) {
+                  isVisual = true;
+                  data = visualSpec;
+                }
               }
             }
           } catch {}
@@ -75,6 +86,18 @@ export function getMarkdownComponents() {
           try {
             if (!data) data = JSON.parse(text);
             return <DataChart type={data.type} data={data.data} xKey={data.xKey} yKeys={data.yKeys} colors={data.colors} title={data.title} />;
+          } catch {
+            return <code className={className} {...props}>{children}</code>;
+          }
+        }
+
+        if (isVisual) {
+          try {
+            const visualSpec = data || parseMathVisualSpec(JSON.parse(text));
+            if (!visualSpec) {
+              return <code className={className} {...props}>{children}</code>;
+            }
+            return <MathVisual spec={visualSpec} />;
           } catch {
             return <code className={className} {...props}>{children}</code>;
           }

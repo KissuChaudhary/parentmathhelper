@@ -122,7 +122,7 @@ export function PromptInput({
                    ? "Review your child’s work from a photo, upload, or annotation"
                    : "Review your child’s work and turn it into parent coaching"
                  : mode === "solver" 
-                   ? "School-friendly steps for Grades 3-6 homework" 
+                   ? "School-friendly steps for Grades 2-6 homework" 
                    : "Parent coaching for fractions, division, and word problems"}
              </span>
             </div>
@@ -384,7 +384,7 @@ export function PromptInput({
         
         <div className="text-center mt-3">
            <p className="text-xs text-zinc-400">
-             Built for parent-guided Grades 3-6 math help. Double-check important homework answers.
+             Built for parent-guided Grades 2-6 math help.
            </p>
         </div>
       </div>
@@ -576,9 +576,9 @@ function WavePlaceholderPhrase({ phrase }: { phrase: string }) {
 function getImageIntentCopy(intent: DraftImageIntent | null, mode: "solver" | "tutor") {
   if (intent === "diagnose_from_image") {
     return {
-      label: "Diagnose from image",
+      label: "Diagnose from worksheet",
       title: mode === "solver" ? "Checking where the math may have gone off" : "Checking what the child may have misunderstood",
-      description: "I’ll review the written work in the current mode and keep the feedback calm, specific, and parent-friendly.",
+      description: "I’ll review the written work in the current mode and help you guide your kid",
     };
   }
 

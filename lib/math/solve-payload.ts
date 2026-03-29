@@ -2,6 +2,13 @@ import { GoogleGenAI } from "@google/genai";
 import { evaluate } from "mathjs";
 import { buildProblemHash, cacheSolution, getCachedSolution } from "@/lib/cache/math-cache";
 import { extractCleanMath } from "@/lib/math/llm-extractor";
+import {
+  createBoxPlotDiagramTool,
+  createFractionDiagramTool,
+  createGeometryDiagramTool,
+  parseMathVisualSpec,
+  type MathVisualSpec,
+} from "@/lib/math-visuals";
 import { mathSolverSystemPrompt } from "@/lib/prompts/math-solver-system";
 import { mathTutorSystemPrompt } from "@/lib/prompts/math-user-guide";
 
@@ -191,7 +198,6 @@ $$
 # Common Mistake
 - [1-2 short bullets]`;
   }
-
   return `Return this exact structure:
 
 # What The Child Needs To Understand
@@ -217,11 +223,62 @@ $$
 - [1-2 short bullets]`;
 }
 
+function formatMathVisualBlock(spec: MathVisualSpec) {
+  return `# Visual Model
+\`\`\`math-visual
+${JSON.stringify(spec, null, 2)}
+\`\`\``;
+}
+
+function appendMathVisualBlocks(text: string, visuals: MathVisualSpec[]) {
+  if (visuals.length === 0) return text;
+  if (/```math-visual/i.test(text)) return text;
+  return `${text.trim()}\n\n${visuals.map((visual) => formatMathVisualBlock(visual)).join("\n\n")}`.trim();
+}
+
+function normalizeVisualToolArgs(name: string, args: unknown) {
+  if (!args || typeof args !== "object") return null;
+  const normalized = { ...(args as Record<string, unknown>) };
+
+  if (name === createFractionDiagramTool.name && !("kind" in normalized)) {
+    normalized.kind = "fraction-diagram";
+  }
+  if (name === createGeometryDiagramTool.name && !("kind" in normalized)) {
+    normalized.kind = "geometry-diagram";
+  }
+  if (name === createBoxPlotDiagramTool.name && !("kind" in normalized)) {
+    normalized.kind = "box-plot-diagram";
+  }
+
+  return parseMathVisualSpec(normalized);
+}
+
+function selectVisualTools(problemText: string) {
+  const text = problemText.toLowerCase();
+  const tools = [];
+
+  if (/\b(fraction|fractions|numerator|denominator|equivalent|shade|shaded|equal parts|circle model|bar model)\b|\/\d/.test(text)) {
+    tools.push(createFractionDiagramTool);
+  }
+
+  if (/\b(angle|angles|vertex|vertices|ray|rays|line segment|segment|triangle|quadrilateral|polygon|shape|interior angle|arms)\b/.test(text)) {
+    tools.push(createGeometryDiagramTool);
+  }
+
+  if (/\b(box plot|quartile|quartiles|median|minimum|maximum|five-number summary|interquartile)\b/.test(text)) {
+    tools.push(createBoxPlotDiagramTool);
+  }
+
+  return tools;
+}
+
 export function inferElementarySkill(problem: string) {
   const text = problem.toLowerCase();
   if (/\b(fraction|fractions|numerator|denominator|equivalent|common denominator|mixed number|improper)\b|\/\d/.test(text)) return "fractions";
   if (/\b(decimal|tenths|hundredths|place value)\b|\d+\.\d+/.test(text)) return "decimals";
   if (/\b(long division|divide|division|quotient|remainder)\b|÷/.test(text)) return "long division";
+  if (/\b(angle|angles|vertex|vertices|ray|rays|line segment|segment|triangle|quadrilateral|polygon|interior angle|arms)\b/.test(text)) return "geometry";
+  if (/\b(box plot|quartile|quartiles|median|minimum|maximum|five-number summary|interquartile)\b/.test(text)) return "data handling";
   if (/\b(word problem|altogether|left|remain|shared|each|total|more|less|how many|how much|in all|altogether)\b/.test(text)) return "word problems";
   if (/\b(perimeter|area)\b/.test(text)) return "area and perimeter";
   if (/\b(measure|measurement|convert|conversion|length|weight|mass|liter|ml|cm|meter|inch|foot|yard|mile|kilometer)\b/.test(text)) return "measurement conversions";
@@ -236,7 +293,7 @@ export function inferElementarySkill(problem: string) {
 
 export function inferElementaryGradeBand(problem: string) {
   const text = problem.toLowerCase();
-  if (/\b(long division|equivalent fraction|common denominator|decimal|perimeter|area|measurement conversion|conversion|pattern|equation|multi-step)\b|\d\/\d/.test(text)) {
+  if (/\b(long division|equivalent fraction|common denominator|decimal|perimeter|area|measurement conversion|conversion|pattern|equation|multi-step|quartile|box plot|interior angle|polygon|ray|vertex)\b|\d\/\d/.test(text)) {
     return "Grades 4-6";
   }
   if (/\b(fraction|multiply|division|remainder|array|equal groups|word problem)\b/.test(text)) {
@@ -505,6 +562,19 @@ ${localSolution ? `Direct arithmetic result: ${localSolution.answerText}` : "No 
 Stay within Grades 3-6 classroom expectations and keep the answer practical for a parent helping at home.
 Prioritize clarity on fractions, long division, decimals, multi-step word problems, area vs perimeter, measurement conversions, and beginning algebra patterns when relevant.${imageInstruction}${followUpInstruction}${priorAnswerInstruction}
 
+If a clean visual model would meaningfully help a parent explain the problem, call one appropriate diagram tool.
+Only call a diagram tool when it clearly improves understanding, such as:
+- shaded fraction bars or circles for part-whole fraction questions
+- labeled angle or polygon diagrams for geometry vocabulary and angle naming
+- box plots for quartiles, median, minimum, and maximum
+
+If a tool is used, include one extra section at the end:
+
+# Visual Model
+\`\`\`math-visual
+[exact JSON tool result]
+\`\`\`
+
 ${buildModeOutputReminder(mode)}`;
 }
 
@@ -521,32 +591,84 @@ async function runModelCompletion({
   if (!apiKey) return "";
 
   const ai = new GoogleGenAI({ apiKey });
-  const contents =
-    image && image.includes(",")
-      ? [
-          {
-            role: "user" as const,
-            parts: [
-              { text: prompt },
+  const contents: Array<{
+    role: "user" | "model";
+    parts: Array<Record<string, unknown>>;
+  }> = [
+    {
+      role: "user",
+      parts: [
+        { text: prompt },
+        ...(image && image.includes(",")
+          ? [
               {
                 inlineData: {
                   data: image.split(",")[1],
                   mimeType: image.split(";")[0]?.split(":")[1] || "image/png",
                 },
               },
-            ],
-          },
-        ]
-      : prompt;
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash-lite",
-    contents,
-    config: {
-      systemInstruction,
+            ]
+          : []),
+      ],
     },
-  });
+  ];
+  const visualTools = selectVisualTools(prompt);
+  const visuals: MathVisualSpec[] = [];
 
-  return response.text?.trim() || "";
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents,
+      config: {
+        systemInstruction,
+        tools: visualTools.length > 0 ? [{ functionDeclarations: visualTools }] : undefined,
+      },
+    });
+
+    if (!response.functionCalls || response.functionCalls.length === 0) {
+      return appendMathVisualBlocks(response.text?.trim() || "", visuals);
+    }
+
+    const modelContent = response.candidates?.[0]?.content;
+    if (modelContent) {
+      contents.push({
+        role: modelContent.role === "model" ? "model" : "user",
+        parts: (modelContent.parts || []) as Array<Record<string, unknown>>,
+      });
+    }
+
+    contents.push({
+      role: "user",
+      parts: response.functionCalls.map((functionCall) => {
+        const functionName = typeof functionCall.name === "string" ? functionCall.name : "";
+        const visualSpec = functionName ? normalizeVisualToolArgs(functionName, functionCall.args) : null;
+        if (visualSpec) {
+          visuals.push(visualSpec);
+          return {
+            functionResponse: {
+              name: functionName,
+              id: functionCall.id,
+              response: {
+                result: visualSpec,
+              },
+            },
+          };
+        }
+
+        return {
+          functionResponse: {
+            name: functionName || "unknown_visual_tool",
+            id: functionCall.id,
+            response: {
+              error: "The requested visual did not match the supported schema.",
+            },
+          },
+        };
+      }),
+    });
+  }
+
+  return "";
 }
 
 export async function solveMathProblemPayload(

@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     }).filter((msg: any) => msg.parts.length > 0);
 
     const responseStream = await ai.models.generateContentStream({
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-2.5-flash",
       contents: apiHistory,
       config: {
         systemInstruction: mode === "solver" ? mathSolverSystemPrompt : mathTutorSystemPrompt,

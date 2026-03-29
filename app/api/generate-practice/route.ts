@@ -28,7 +28,7 @@ Return a parent hint the adult can say out loud in plain English.
 Original Problem: ${originalProblem}`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",

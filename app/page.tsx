@@ -713,7 +713,7 @@ export default function Page() {
         </div>
       </div>
 
-      <div className="flex-none bg-white pb-6 pt-2">
+      <div className="flex-none bg-white pb-2 pt-2">
         <PromptInput
           input={input}
           setInput={setInput}
