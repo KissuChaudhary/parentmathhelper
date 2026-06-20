@@ -122,8 +122,8 @@ export function PromptInput({
                    ? "Review your child’s work from a photo, upload, or annotation"
                    : "Review your child’s work and turn it into parent coaching"
                  : mode === "solver" 
-                   ? "School-friendly steps for Grades 2-6 homework" 
-                   : "Parent coaching for fractions, division, and word problems"}
+                   ? "School-friendly steps for K-5 homework" 
+                   : "Parent coaching for K-5 math — fractions, division, word problems, and more"}
              </span>
             </div>
             <div ref={diagnoseInfoRef} className="relative shrink-0">
@@ -384,7 +384,7 @@ export function PromptInput({
         
         <div className="text-center mt-3">
            <p className="text-xs text-zinc-400">
-             Built for parent-guided Grades 2-6 math help.
+             Built for parent-guided K-5 math help.
            </p>
         </div>
       </div>
@@ -409,14 +409,14 @@ function getAnimatedPlaceholderPhrases(mode: "solver" | "tutor", diagnoseEnabled
 
   return mode === "solver"
     ? [
-        "Paste a fraction, long division, decimal, or word problem...",
-        "Upload a worksheet photo and get school-friendly steps...",
+        "Paste a math problem — fractions, division, word problems, place value...",
+        "Upload a worksheet photo and get school-friendly K-5 steps...",
         "Ask to verify a final answer or show another method...",
       ]
     : [
-        "Ask how to explain the homework method to your child...",
-        "Upload the worksheet and I’ll turn it into a parent script...",
-        "Ask for a simpler analogy, shorter explanation, or one stuck step...",
+        "Ask how to explain any K-5 math concept to your child...",
+        "Upload the worksheet and I'll turn it into a parent coaching script...",
+        "Ask for a simpler analogy, a hands-on activity, or help with one stuck step...",
       ];
 }
 

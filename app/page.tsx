@@ -240,8 +240,7 @@ export default function Page() {
         }
       : undefined;
     const extractedQuestion = extractMarkdownSection(fullText, "Question");
-    const resolvedSourceProblem =
-      sourceProblem === imageIntentProblemByMode[targetMode] && extractedQuestion ? extractedQuestion : sourceProblem;
+    const resolvedSourceProblem = solvePayload.problem || extractedQuestion || sourceProblem;
 
     updateMessagesForMode(targetMode, (prev) =>
       prev.map((msg) =>

@@ -13,10 +13,10 @@ async function callSolveRoute(problem: string, mode: "solver" | "tutor" = "solve
       extractProblem: async (input) => input.replace(/^please help me /i, "").trim(),
       complete: async ({ systemInstruction }) =>
         systemInstruction.includes("parent coach")
-          ? `# What The Child Needs To Understand
+          ? `# 🐼 Pando says
 This is a fraction problem. The child needs to rename the fractions so they share the same denominator before adding.
 
-# How To Explain It
+# 🗣 Say this to your child
 Tell your child both fractions must be cut into the same size pieces before the numerators can be added.
 
 # Solution Steps
@@ -25,19 +25,19 @@ Rename the larger fraction with a common denominator.
 $$
 3/4 = 6/8
 $$
-> Teaching Tip: Say, "We want both fractions to use eighths."
+> 🐼 Tip: Say, "We want both fractions to use eighths."
 
 ### Step 2
 Add the numerators now that the pieces match.
 $$
 6/8 + 1/8 = 7/8
 $$
-> Teaching Tip: Ask, "How many eighths do we have altogether?"
+> 🐼 Tip: Ask, "How many eighths do we have altogether?"
 
 # Common Mistake
 - Adding the top and bottom numbers separately
 
-# Practice Together
+# ⭐ Celebrate
 - Try 1/2 + 1/4.
 - Praise careful thinking, not just speed.`
           : `# Question
@@ -101,7 +101,7 @@ test("math solve route returns structured solver markdown and caches by normaliz
   assert.equal(solvedFirst.metadata.mode, "solver");
   assert.equal(solvedFirst.metadata.validationPassed, true);
   assert.equal(solvedFirst.metadata.commonSkill, "fractions");
-  assert.equal(solvedFirst.gradeBand, "Grades 4-6");
+  assert.equal(solvedFirst.gradeBand, "Grades 3-5");
   assert.equal(solvedFirst.normalizedProblem, "solve 3/4 + 1/8");
   assert.equal(solvedSecond.cached, true);
   assert.equal(String(solvedFirst.solution).includes("SymPy"), false);
@@ -115,8 +115,8 @@ test("math solve route returns tutor structure for parent coaching", async () =>
   const solvedPayload = asSolvedPayload(payload);
   assert.equal(solvedPayload.success, true);
   assert.equal(solvedPayload.metadata.mode, "tutor");
-  assert.equal(solvedPayload.solution.includes("# What The Child Needs To Understand"), true);
-  assert.equal(solvedPayload.solution.includes("# Practice Together"), true);
+  assert.equal(solvedPayload.solution.includes("# 🐼 Pando says"), true);
+  assert.equal(solvedPayload.solution.includes("# ⭐ Celebrate"), true);
 });
 
 test("math solve route falls back to offline arithmetic when no model is injected", async () => {

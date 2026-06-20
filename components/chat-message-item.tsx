@@ -41,7 +41,7 @@ export function ChatMessageItem({
   const isSolverMessage = message.role === "model" && message.responseType === "solver_response";
   const isDiagnosisMessage = message.role === "model" && message.responseType === "diagnosis_response";
   const detailSplitMatch = isSolverMessage
-    ? formattedText.match(/(?=\n#\s*(Why This Works|How To Explain It|Common Mistake))/i)
+    ? formattedText.match(/(?=\n#\s*(Why This Works|How To Explain It|Common Mistake|Hands-On Activity|(?:🎲\s*)?Try\s*together))/i)
     : null;
   const primaryText = detailSplitMatch ? formattedText.slice(0, detailSplitMatch.index) : formattedText;
   const detailText = detailSplitMatch ? formattedText.slice(detailSplitMatch.index || 0) : "";
@@ -61,10 +61,14 @@ export function ChatMessageItem({
       <div className="flex items-center gap-2 mb-1.5">
         {message.role === "model" ? (
           <>
-            <div className="w-5 h-5 rounded bg-zinc-900 flex items-center justify-center flex-shrink-0">
-              <Bot size={12} className="text-white" />
-            </div>
-            <span className="text-xs font-medium text-zinc-900">ParentMathHelper</span>
+            <img 
+              src="/pando.png" 
+              alt="Pando mascot" 
+              className="w-6 h-6 rounded-full border border-emerald-100 shadow-sm object-contain bg-emerald-50/10 flex-shrink-0"
+            />
+            <span className="text-xs font-semibold text-zinc-900 flex items-center gap-1">
+              Pando <span className="text-[10px] opacity-80">🐼</span>
+            </span>
           </>
         ) : (
           <>
@@ -324,6 +328,13 @@ function getDiagnosisTone(title: string) {
     return {
       cardClassName: "border-violet-200 bg-violet-50/80",
       labelClassName: "text-violet-700",
+    };
+  }
+
+  if (normalized.includes("hands-on") || normalized.includes("activity") || normalized.includes("try together")) {
+    return {
+      cardClassName: "border-amber-200 bg-amber-50/80",
+      labelClassName: "text-amber-700",
     };
   }
 

@@ -17,8 +17,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Parent Tutor Mode",
-  description: "AI Math Application",
+  title: "Pando 🐼 — Math Companion for Parents",
+  description: "I help parents explain K-5 math in ways kids understand.",
 };
 
 export default function RootLayout({
